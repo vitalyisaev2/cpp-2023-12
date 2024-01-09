@@ -1,0 +1,4 @@
+#define HelloWorld_VERSION_MAJOR @HelloWorld_VERSION_MAJOR@
+#define HelloWorld_VERSION_MINOR @HelloWorld_VERSION_MINOR@
+#define HelloWorld_VERSION_PATCH @HelloWorld_VERSION_PATCH@
+
