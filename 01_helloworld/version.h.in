@@ -1,4 +1,6 @@
-#define HelloWorld_VERSION_MAJOR @HelloWorld_VERSION_MAJOR@
-#define HelloWorld_VERSION_MINOR @HelloWorld_VERSION_MINOR@
-#define HelloWorld_VERSION_PATCH @HelloWorld_VERSION_PATCH@
+#ifndef VERSION_H_IN
+#define VERSION_H_IN
 
+#define BUILD_NUMBER "@BUILD_NUMBER@"
+
+#endif // VERSION_H_IN
