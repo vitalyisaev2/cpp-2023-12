@@ -30,7 +30,7 @@ jobs:
     - name: Check
       run: |
         sudo apt install -y ${{github.workspace}}/build/_CPack_Packages/Linux/DEB/helloworld-0.0.${{github.run_number}}-Linux.deb
-        helloword_cli
+        helloworld_cli
 
     - name: Test
       working-directory: ${{github.workspace}}/build
