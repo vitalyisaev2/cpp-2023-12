@@ -29,7 +29,7 @@ jobs:
 
     - name: Check
       run: |
-        apt install -y ${{github.workspace}}/build/_CPack_Packages/Linux/DEB/helloworld-0.0.{{github.run_number}}-Linux.deb
+        sudo apt install -y ${{github.workspace}}/build/_CPack_Packages/Linux/DEB/helloworld-0.0.${{github.run_number}}-Linux.deb
         helloword_cli
 
     - name: Test
