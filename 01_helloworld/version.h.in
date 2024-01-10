@@ -1,6 +1,6 @@
 #ifndef VERSION_H_IN
 #define VERSION_H_IN
 
-#define BUILD_NUMBER "@BUILD_NUMBER@"
+#define BUILD_NUMBER @BUILD_NUMBER@
 
 #endif // VERSION_H_IN
