@@ -29,7 +29,10 @@ jobs:
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -D BUILD_NUMBER=${{github.run_number}}
+
+    - name: Check
+      run: ${{github.workspace}}/build/01_helloworld/helloworld
 
     - name: Test
       working-directory: ${{github.workspace}}/build
