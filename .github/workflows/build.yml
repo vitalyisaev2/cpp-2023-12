@@ -36,3 +36,10 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{env.BUILD_TYPE}}
 
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ${{github.workspace}}/build/_CPack_Packages/Linux/DEB/helloworld-0.0.${{github.run_number}}-Linux.deb
+        token: ${{secrets.RELEASE_TOKEN}}
+        tag_name: 0.0.${{github.run_number}}
