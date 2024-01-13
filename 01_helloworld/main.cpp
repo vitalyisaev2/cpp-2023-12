@@ -3,7 +3,8 @@
 
 #include "version.h"
 
-int main() {
+int main()
+{
   std::stringstream ss;
   ss << "build " << BUILD_NUMBER << std::endl;
   ss << "Hello, World!" << std::endl;
