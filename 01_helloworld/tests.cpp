@@ -2,6 +2,7 @@
 
 #include "version.h"
 
-TEST(HelloWorld, NonZeroBuildNumber) {
+TEST(HelloWorld, NonZeroBuildNumber)
+{
     ASSERT_GT(BUILD_NUMBER, 0);
 }
