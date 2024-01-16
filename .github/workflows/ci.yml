@@ -43,6 +43,7 @@ jobs:
             popd
         done
 
+        echo $(realpath ${{github.workspace}}/packages)
         ls -l ${{github.workspace}}/packages
 
   release:
