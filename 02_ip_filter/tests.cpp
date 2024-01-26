@@ -14,7 +14,6 @@ TEST(IPFilter, ParseAddress)
     ASSERT_EQ(expected, actual);
 }
 
-
 TEST(IPFilter, ParseStream)
 {
     std::stringstream ss;
@@ -23,9 +22,9 @@ TEST(IPFilter, ParseStream)
     ss << "3.4.5.6\t10.20.30.40\t100.200.300.400" << std::endl;
 
     std::vector<TAddress> expected;
-    expected.emplace_back(TAddress(1, 2, 3, 4 ));
-    expected.emplace_back(TAddress( 2, 3, 4, 5 ));
-    expected.emplace_back(TAddress( 3, 4, 5, 6 ));
+    expected.emplace_back(TAddress(1, 2, 3, 4));
+    expected.emplace_back(TAddress(2, 3, 4, 5));
+    expected.emplace_back(TAddress(3, 4, 5, 6));
 
     auto actual = TAddresses(ss);
 
@@ -34,10 +33,10 @@ TEST(IPFilter, ParseStream)
 
 TEST(IPFilter, Comparison)
 {
-    ASSERT_LT(TAddress( 1, 1, 1, 1 ), TAddress( 1, 1, 1, 2 ));
-    ASSERT_LT(TAddress( 1, 1, 1, 1 ), TAddress( 1, 1, 2, 1 ));
-    ASSERT_LT(TAddress( 1, 1, 1, 1 ), TAddress( 1, 2, 1, 1 ));
-    ASSERT_LT(TAddress( 1, 1, 1, 1 ), TAddress( 2, 1, 1, 1 ));
+    ASSERT_LT(TAddress(1, 1, 1, 1), TAddress(1, 1, 1, 2));
+    ASSERT_LT(TAddress(1, 1, 1, 1), TAddress(1, 1, 2, 1));
+    ASSERT_LT(TAddress(1, 1, 1, 1), TAddress(1, 2, 1, 1));
+    ASSERT_LT(TAddress(1, 1, 1, 1), TAddress(2, 1, 1, 1));
 }
 
 TEST(IPFilter, AddressesToStream)
