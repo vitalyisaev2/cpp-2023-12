@@ -12,22 +12,18 @@ int main()
 
     // #2: first byte == 1
     {
-        std::cout << src.ApplyFilter([](const NIPFilter::TAddress& address) { return address[0] == 1; });
+        std::cout << src.ApplyFilter([](const NIPFilter::TAddress& address) { return address.GetOctet(0) == 1; });
     }
 
     // #3: first byte == 46, second byte == 70
     {
-        std::cout << src.ApplyFilter([](const NIPFilter::TAddress& address) {
-            return address[0] == 46 && address[1] == 70;
-        });
+        std::cout << src.ApplyFilter(
+            [](const NIPFilter::TAddress& address) { return address.GetOctet(0) == 46 && address.GetOctet(1) == 70; });
     }
 
     // #4: any byte is 46
     {
-        std::cout << src.ApplyFilter([](const NIPFilter::TAddress& address) {
-            auto result = std::find(address.cbegin(), address.cend(), NIPFilter::TByte(46));
-            return result != std::end(address);
-        });
+        std::cout << src.ApplyFilter([](const NIPFilter::TAddress& address) { return address.HasOctet(46); });
     }
 
     // #3:

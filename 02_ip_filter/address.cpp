@@ -1,37 +1,50 @@
 #include "address.hpp"
 
-#include <iostream>
-
 namespace NIPFilter {
 
-TAddress::TAddress(const std::string& in)
-    : TByteArray()
-{
-    std::size_t start = 0;
-    for (std::size_t i = 0; i < 4; i++) {
-        GetNextByte(in, (*this)[i], start);
+    TAddress::TAddress(const std::string& in)
+        : octets({}) {
+        std::size_t start = 0;
+        for (std::size_t i = 0; i < 4; i++) {
+            GetNextByte(in, (*this).octets[i], start);
+        }
     }
-}
 
-bool TAddress::operator<(const TAddress& other) const
-{
-    for (std::size_t i = 0; i < 4; i++) {
-        if ((*this)[i] < other[i]) {
-            return true;
+    uint8_t TAddress::GetOctet(std::size_t i) const {
+        if (i > 3) {
+            std::stringstream ss;
+            ss << "Invalid octet index: " << std::to_string(i) << std::endl;
+            throw ss.str();
         }
 
-        if ((*this)[i] > other[i]) {
-            return false;
-        }
+        return octets[i];
+    }
+
+    bool TAddress::HasOctet(uint8_t value) const {
+        return std::find(octets.cbegin(), octets.cend(), value) != std::end(octets);
     };
 
-    return false;
-}
+    void TAddress::GetNextByte(const std::string& in, uint8_t& out, std::size_t& start) {
+        auto stop = in.find_first_of('.', start);
+        out = std::stoi(in.substr(start, stop - start));
+        start = stop + 1;
+    };
 
-void TAddress::GetNextByte(const std::string& in, TByte& out, std::size_t& start)
-{
-    auto stop = in.find_first_of('.', start);
-    out = std::stoi(in.substr(start, stop - start));
-    start = stop + 1;
-};
+    bool TAddress::operator<(const TAddress& other) const {
+        return this->octets < other.octets;
+    }
+
+    bool TAddress::operator==(const TAddress& other) const {
+        return this->octets == other.octets;
+    }
+
+    std::ostream& operator<<(std::ostream& os, const TAddress& address) {
+        for (std::size_t i = 0; i < 4; i++) {
+            os << std::to_string(address.octets[i]);
+            if (i < 3)
+                os << ".";
+        }
+        return os;
+    }
+
 } // namespace NIPFilter
