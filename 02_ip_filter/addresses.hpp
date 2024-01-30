@@ -9,32 +9,30 @@
 
 namespace NIPFilter {
 
-    class TAddresses: public std::vector<TAddress> {
+    class TAddresses {
     public:
-        using TFilter = std::function<bool(const TAddress&)>;
-
-        TAddresses()
-            : std::vector<TAddress>({})
-        {
-        }
-
+        TAddresses(){};
         TAddresses(std::istream& istream);
 
+        void Add(TAddress address);
+
         void ReverseLexicographicSort();
-        TAddresses ApplyFilter(const TFilter& filter) const;
 
-        friend std::ostream& operator<<(std::ostream& os, const TAddresses& addresses)
-        {
-            for (const auto& address : addresses) {
-                os << address << std::endl;
-            }
-
-            return os;
+        template <class TFilter>
+        TAddresses ApplyFilter(const TFilter& filter) const {
+            TAddresses out;
+            std::copy_if(this->items.cbegin(), this->items.cend(), std::back_inserter(out.items), filter);
+            return out;
         }
 
+        friend std::ostream& operator<<(std::ostream& os, const TAddresses& addresses);
+
+        bool operator==(const TAddresses& other) const;
+
     private:
+        std::vector<TAddress> items;
         TAddress ParseLine(const std::string& in);
     };
-}
+} //namespace NIPFilter
 
 #endif
