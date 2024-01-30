@@ -1,31 +1,34 @@
 #include "addresses.hpp"
 
 namespace NIPFilter {
-
-    TAddresses::TAddresses(std::istream& istream)
-        : std::vector<TAddress>({})
-    {
+    TAddresses::TAddresses(std::istream& istream) {
         std::string line;
-        while (std::getline(istream, line))
-        {
-            this->emplace_back(ParseLine(line));
+        while (std::getline(istream, line)) {
+            this->items.emplace_back(ParseLine(line));
         }
     }
 
-    void TAddresses::ReverseLexicographicSort()
-    {
-        std::sort(this->rbegin(), this->rend());
+    void TAddresses::ReverseLexicographicSort() {
+        std::sort(this->items.rbegin(), this->items.rend());
     }
 
-    TAddresses TAddresses::ApplyFilter(const TFilter& filter) const {
-        TAddresses out;
-        std::copy_if(this->cbegin(), this->cend(), std::back_inserter(out), filter);
-        return out;
+    void TAddresses::Add(TAddress address) {
+        this->items.emplace_back(std::move(address));
     }
 
-    TAddress TAddresses::ParseLine(const std::string& in)
-    {
+    std::ostream& operator<<(std::ostream& os, const TAddresses& addresses) {
+        for (const auto& address : addresses.items) {
+            os << address << std::endl;
+        }
+
+        return os;
+    }
+    bool TAddresses::operator==(const TAddresses& other) const {
+        return this->items == other.items;
+    }
+
+    TAddress TAddresses::ParseLine(const std::string& in) {
         auto pos = in.find_first_of('\t');
         return TAddress(in.substr(0, pos));
     }
-}
+} //namespace NIPFilter

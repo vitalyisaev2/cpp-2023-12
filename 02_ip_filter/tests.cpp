@@ -21,10 +21,10 @@ TEST(IPFilter, ParseStream)
     ss << "2.3.4.5\t10.20.30.40\t100.200.300.400" << std::endl;
     ss << "3.4.5.6\t10.20.30.40\t100.200.300.400" << std::endl;
 
-    std::vector<TAddress> expected;
-    expected.emplace_back(TAddress(1, 2, 3, 4));
-    expected.emplace_back(TAddress(2, 3, 4, 5));
-    expected.emplace_back(TAddress(3, 4, 5, 6));
+    TAddresses expected;
+    expected.Add(TAddress(1, 2, 3, 4));
+    expected.Add(TAddress(2, 3, 4, 5));
+    expected.Add(TAddress(3, 4, 5, 6));
 
     auto actual = TAddresses(ss);
 
