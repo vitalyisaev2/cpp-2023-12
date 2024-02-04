@@ -25,9 +25,10 @@ jobs:
       run: |
         mkdir ${{github.workspace}}/packages
         
-        HOMEWORK_DIRS=$(find . -type d -regex '\.\/[0-9]+_.*' | sort | paste -s -d' ')
+        HOMEWORK_DIRS=$(find . -type d -regex '\.\/[0-9]+_.*' | sort)
+        echo $HOMEWORK_DIRS
         
-        for HOMEWORK_DIR in "${HOMEWORK_DIRS}"; do
+        for HOMEWORK_DIR in $HOMEWORK_DIRS; do
             mkdir "${HOMEWORK_DIR}"/build
 
             pushd "${HOMEWORK_DIR}"/build
