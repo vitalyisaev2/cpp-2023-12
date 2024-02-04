@@ -27,7 +27,7 @@ jobs:
         
         HOMEWORK_DIRS=$(find . -type d -regex '\.\/[0-9]+_.*' | sort | paste -s -d' ')
         
-        for HOMEWORK_DIR in 01_helloworld 02_ip_filter; do
+        for HOMEWORK_DIR in "${HOMEWORK_DIRS}"; do
             mkdir "${HOMEWORK_DIR}"/build
 
             pushd "${HOMEWORK_DIR}"/build
