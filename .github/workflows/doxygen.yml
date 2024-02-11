@@ -13,13 +13,13 @@ jobs:
             uses: mattnotmitt/doxygen-action@v1.3.1
             with:
               working-directory: '.'
-              doxyfile-path: 'doc/doxygen/DoxyfileCC'
+              doxyfile-path: 'docs/Doxyfile'
 
           - name: Upload Output Directory
             uses: actions/upload-artifact@v2
             with:
               name: doc-files
-              path: doc
+              path: docs
               retention-days: 1
 
     copy:
@@ -35,7 +35,7 @@ jobs:
             uses: actions/download-artifact@v2
             with:
               name: doc-files
-              path: docDir
+              path: docs
 
           - name: Commit changes
             uses: EndBug/add-and-commit@v7
@@ -44,4 +44,4 @@ jobs:
               author_email: vitalyisaev2@gmail.com
               message: 'Update docs'
               branch: gh-pages
-              add: '["docDir/doxygen/CC/html/*", ]'
+              add: '["docs/out/html/*", ]'
