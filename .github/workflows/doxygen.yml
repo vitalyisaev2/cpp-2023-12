@@ -49,4 +49,4 @@ jobs:
               author_email: vitalyisaev2@gmail.com
               message: 'Update docs'
               branch: gh-pages
-              add: '["docs/out/html/*", ]'
+              add: '["*", ]'
