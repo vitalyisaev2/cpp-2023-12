@@ -1,5 +1,0 @@
-var searchData=
-[
-  ['capacity_146',['capacity',['../class_n_allocator_1_1_t_heap_allocator_1_1_t_pool.html#a0ecb431eeaf65ad612da9ed39214e445',1,'NAllocator::THeapAllocator::TPool']]],
-  ['capacity_5f_147',['capacity_',['../class_n_allocator_1_1_t_container.html#a657494d17c89353d6edc343b2a0f1e80',1,'NAllocator::TContainer']]]
-];
