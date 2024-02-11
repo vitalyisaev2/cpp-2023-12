@@ -37,6 +37,11 @@ jobs:
               name: doc-files
               path: docs
 
+          - name: Move files
+            run: |
+                mv docs/out/html/* .
+                rm -rf docs
+
           - name: Commit changes
             uses: EndBug/add-and-commit@v7
             with:
