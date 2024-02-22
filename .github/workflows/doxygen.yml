@@ -39,6 +39,7 @@ jobs:
 
           - name: Move files
             run: |
+                ls -l
                 mv docs/out/html/* .
                 rm -rf docs
 
