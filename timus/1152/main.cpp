@@ -84,22 +84,16 @@ public:
     }
 
     void MakeStep(std::size_t cumulativeCost, std::size_t& optimum) const {
-        std::cout << "Groups: " << Dump() << " Cost: " << cumulativeCost << std::endl;
-
         if (groups.size() == 1 && groups[0].IsOneShot()) {
             if (cumulativeCost < optimum) {
                 optimum = cumulativeCost;
             }
-
-            std::cout << "Update and return" << std::endl;
 
             return;
         }
 
         for (std::size_t i = 0; i < groups.size(); i++) {
             for (int j = 0; j < int(groups[i].Size()) - 2; j++) {
-                std::cout << "i " << i << " j " << j << " groups.size() " << groups.size() << " groups[i].Size() "
-                          << groups[i].Size() << std::endl;
                 TGroup::TVec outgoing;
 
                 // copy head
@@ -116,8 +110,6 @@ public:
 
                 TDisposition newDisposition(std::move(outgoing));
 
-                std::cout << "i: " << i << " j: " << j << " old: " << Dump() << " new: " << newDisposition.Dump()
-                          << std::endl;
                 newDisposition.MakeStep(cumulativeCost + newDisposition.Fireback(), optimum);
             }
         }
@@ -145,7 +137,6 @@ int main() {
         std::cin >> number;
         numbers.push_back(number);
     }
-    // print_vector(numbers);
 
     std::size_t optimum = std::accumulate(numbers.cbegin(), numbers.cend(), std::size_t(0));
 
