@@ -6,93 +6,140 @@
 #include <sstream>
 #include <vector>
 
-using group = std::vector<std::size_t>;
+class TGroup {
+public:
+    using TData = std::vector<std::size_t>;
 
-std::string dump_group(const group& g) {
-    std::stringstream ss;
-    for (const auto n : g) {
-        ss << n << " ";
-    }
+    TGroup() = delete;
 
-    return ss.str();
-}
+    explicit TGroup(TData data_)
+        : data(std::move(data_)){};
 
-std::string dump_groups(const std::vector<group>& gs) {
-    std::stringstream ss;
-    for (const auto g : gs) {
-        ss << "[ ";
-        ss << dump_group(g);
-        ss << " ]";
-    }
+    using TVec = std::vector<TGroup>;
 
-    return ss.str();
-}
+    TVec Shoot(std::size_t position) const {
+        TData g1, g2;
+        std::copy(data.cbegin(), data.cbegin() + position, std::back_inserter(g1));
+        std::copy(data.cbegin() + position + 3, data.cend(), std::back_inserter(g2));
 
-void makeStep(const std::vector<group>& incoming, std::size_t cumulativeCost, std::size_t& optimum) {
-    std::cout << "incoming " << dump_groups(incoming) << " cumulativeCost " << cumulativeCost << std::endl; 
+        TVec outgoing;
+        std::size_t cost = 0;
 
-    // std::vector<group> transformed;
-
-    // for (const auto& numbers : incoming) {
-    //     // if (numbers.size() >= 3) {
-    //         transformed.push_back(numbers);
-    //     // }
-    // }
-
-    if (incoming.size() == 1 && incoming[0].size() <= 3 ) {
-        std::cout << "cost " << cumulativeCost << std::endl;
-        if (cumulativeCost < optimum) {
-            optimum = cumulativeCost;
+        if (g1.size() > 0) {
+            outgoing.emplace_back(TGroup(std::move(g1)));
         }
-        return;
+
+        if (g2.size() > 0) {
+            outgoing.emplace_back(TGroup(std::move(g2)));
+        }
+
+        return outgoing;
+    };
+
+    std::size_t Size() const {
+        return data.size();
     }
 
-    // for (const auto& numbers : transformed) {
-    for (std::size_t j = 0; j < incoming.size(); j++) {
-        // std::cout << "transformed " << dump_groups(incoming) << std::endl; 
+    bool IsOneShot() const {
+        return data.size() <= 3;
+    }
 
-        const auto& numbers = incoming[j];
+    std::size_t Fireback() const {
+        return std::accumulate(data.cbegin(), data.cend(), 0);
+    }
 
-        for (std::size_t i = 0; i < numbers.size() - 2; i++) {
-            std::vector<group> truncated;
-            std::size_t addedCost = 0;
+    std::string Dump() const {
+        std::stringstream ss;
 
-            group g1;
-            std::copy(numbers.cbegin(), numbers.cbegin() + i, std::back_inserter(g1));
-            if (g1.size() > 0) {
-                addedCost += std::accumulate(g1.cbegin(), g1.cend(), 0);
-                truncated.emplace_back(std::move(g1));
+        ss << "[";
+        for (const auto n : data) {
+            ss << n << " ";
+        }
+        ss << "]";
+
+        return ss.str();
+    }
+
+private:
+    TData data;
+};
+
+class TDisposition {
+public:
+    TDisposition() = delete;
+
+    TDisposition(TGroup::TVec groups_)
+        : groups(std::move(groups_)) {
+    }
+
+    std::string Dump() const {
+        std::stringstream ss;
+
+        for (const auto g : groups) {
+            ss << g.Dump();
+            ss << " ";
+        }
+
+        return ss.str();
+    }
+
+    void MakeStep(std::size_t cumulativeCost, std::size_t& optimum) const {
+        std::cout << "Groups: " << Dump() << " Cost: " << cumulativeCost << std::endl;
+
+        if (groups.size() == 1 && groups[0].IsOneShot()) {
+            if (cumulativeCost < optimum) {
+                optimum = cumulativeCost;
             }
 
-            group g2;
-            std::copy(numbers.cbegin() + i + 3, numbers.cend(), std::back_inserter(g2));
-            if (g2.size() > 0) {
-                addedCost += std::accumulate(g2.cbegin(), g2.cend(), 0);
-                truncated.emplace_back(std::move(g2));
-            }
+            std::cout << "Update and return" << std::endl;
 
-            std::vector<group> outgoing;
-            for (std::size_t ix = 0; ix < j; ix++) {
-                outgoing.push_back(incoming[ix]);
-            }
-            for (const auto& tr: truncated) {
-                outgoing.push_back(tr);
-            }
-            for (std::size_t ix = j+1; ix < incoming.size(); ix++) {
-                outgoing.push_back(incoming[ix]);
-            }
+            return;
+        }
 
-            // print_vector(truncated);
-            makeStep(outgoing, cumulativeCost + addedCost, optimum);
+        for (std::size_t i = 0; i < groups.size(); i++) {
+            for (int j = 0; j < int(groups[i].Size()) - 2; j++) {
+                std::cout << "i " << i << " j " << j << " groups.size() " << groups.size() << " groups[i].Size() "
+                          << groups[i].Size() << std::endl;
+                TGroup::TVec outgoing;
+
+                // copy head
+                std::copy(groups.cbegin(), groups.cbegin() + i, std::back_inserter(outgoing));
+
+                // perform shooting
+                auto result = groups[i].Shoot(j);
+
+                // copy middle
+                std::copy(result.cbegin(), result.cend(), std::back_inserter(outgoing));
+
+                // copy tail
+                std::copy(groups.cbegin() + i + 1, groups.cend(), std::back_inserter(outgoing));
+
+                TDisposition newDisposition(std::move(outgoing));
+
+                std::cout << "i: " << i << " j: " << j << " old: " << Dump() << " new: " << newDisposition.Dump()
+                          << std::endl;
+                newDisposition.MakeStep(cumulativeCost + newDisposition.Fireback(), optimum);
+            }
         }
     }
-}
+
+    std::size_t Fireback() const {
+        std::size_t cost = 0;
+        for (const auto& g : groups) {
+            cost += g.Fireback();
+        }
+        return cost;
+    }
+
+private:
+    TGroup::TVec groups;
+};
 
 int main() {
     std::size_t N;
     std::cin >> N;
 
-    std::vector<std::size_t> numbers;
+    TGroup::TData numbers;
     std::size_t number;
     for (; N > 0; N--) {
         std::cin >> number;
@@ -102,7 +149,9 @@ int main() {
 
     std::size_t optimum = std::accumulate(numbers.cbegin(), numbers.cend(), std::size_t(0));
 
-    makeStep(std::vector<group>{numbers}, 0, optimum);
+    TDisposition disposition(TGroup::TVec{TGroup(std::move(numbers))});
+
+    disposition.MakeStep(0, optimum);
 
     std::cout << optimum << std::endl;
 }
