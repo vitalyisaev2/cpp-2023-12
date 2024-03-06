@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 from dataclasses import dataclass
 from typing import List, Set
 import copy
@@ -46,11 +47,6 @@ class Disposition:
         ]
 
     def step(self, result: Result):
-        # print("START ", self, "->", self.cum_damage)
-
-        if str(self) in result.solution_cache:
-            return
-
         starting_points = self.non_destroyed_balcony_ixs()
 
         if len(starting_points) == 0:
@@ -59,10 +55,9 @@ class Disposition:
 
         for start in starting_points:
             disp = self.shoot(start=start)
-            disp.step(result=result)
-
-        # marking this branch as resolved
-        result.solution_cache.add(str(self))
+            # print(disp.cum_damage, result.min_damage)
+            if disp.cum_damage < result.min_damage:
+                disp.step(result=result)
 
     def shoot(self, start: int) -> "Disposition":
         balconies = copy.deepcopy(self.balconies)
@@ -91,6 +86,6 @@ if __name__ == "__main__":
     monsters = list(map(lambda x: int(x), lines[1].split()))
     balconies = [Balcony(monsters=m, destroyed=False) for m in monsters]
     disp = Disposition(cum_damage=0, balconies=balconies)
-    result = Result(min_damage=sum(b.monsters for b in balconies), solution_cache=set())
+    result = Result(min_damage=sys.maxsize, solution_cache=set())
     disp.step(result=result)
     print(result.min_damage)

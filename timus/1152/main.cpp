@@ -1,148 +1,125 @@
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
-#include <iterator>
-#include <numeric>
 #include <sstream>
 #include <vector>
 
-class TGroup {
+class TResult {
 public:
-    using TData = std::vector<std::size_t>;
-
-    TGroup() = delete;
-
-    explicit TGroup(TData data_)
-        : data(std::move(data_)){};
-
-    using TVec = std::vector<TGroup>;
-
-    TVec Shoot(std::size_t position) const {
-        TData g1, g2;
-        std::copy(data.cbegin(), data.cbegin() + position, std::back_inserter(g1));
-        std::copy(data.cbegin() + position + 3, data.cend(), std::back_inserter(g2));
-
-        TVec outgoing;
-        std::size_t cost = 0;
-
-        if (g1.size() > 0) {
-            outgoing.emplace_back(TGroup(std::move(g1)));
-        }
-
-        if (g2.size() > 0) {
-            outgoing.emplace_back(TGroup(std::move(g2)));
-        }
-
-        return outgoing;
-    };
-
-    std::size_t Size() const {
-        return data.size();
+    TResult()
+        : MinimalDamage(UINT64_MAX) {
     }
 
-    bool IsOneShot() const {
-        return data.size() <= 3;
+    void MaybeUpdate(std::size_t CurrentDamage) {
+        MinimalDamage = std::min(MinimalDamage, CurrentDamage);
     }
 
-    std::size_t Fireback() const {
-        return std::accumulate(data.cbegin(), data.cend(), 0);
+    bool PossibleImrovement(std::size_t CurrentDamage) const {
+        return CurrentDamage < MinimalDamage;
     }
 
-    std::string Dump() const {
-        std::stringstream ss;
-
-        ss << "[";
-        for (const auto n : data) {
-            ss << n << " ";
-        }
-        ss << "]";
-
-        return ss.str();
+    std::size_t GetValue() const {
+        return MinimalDamage;
     }
 
 private:
-    TData data;
+    std::size_t MinimalDamage;
+};
+
+struct TBalcony {
+    std::size_t Monsters;
+    bool Destroyed;
 };
 
 class TDisposition {
 public:
-    TDisposition() = delete;
+    TDisposition(std::vector<TBalcony> balconies)
+        : Balconies(std::move(balconies))
+        , CumulativeDamage(0){};
 
-    TDisposition(TGroup::TVec groups_)
-        : groups(std::move(groups_)) {
-    }
+private:
+    std::size_t CumulativeDamage;
+    std::vector<TBalcony> Balconies;
 
     std::string Dump() const {
         std::stringstream ss;
-
-        for (const auto g : groups) {
-            ss << g.Dump();
-            ss << " ";
+        ss << "[";
+        for (const auto& b : Balconies) {
+            if (b.Destroyed) {
+                ss << " - ";
+            } else {
+                ss << " " << b.Monsters << " ";
+            }
         }
-
+        ss << "]";
         return ss.str();
     }
 
-    void MakeStep(std::size_t cumulativeCost, std::size_t& optimum) const {
-        if (groups.size() == 1 && groups[0].IsOneShot()) {
-            if (cumulativeCost < optimum) {
-                optimum = cumulativeCost;
+    void GetNonDestroyedBalconyIxs(std::vector<std::size_t>& ixs) const {
+        ixs.clear();
+        ixs.reserve(Balconies.size());
+        for (std::size_t ix = 0; ix < Balconies.size(); ix++) {
+            if (!Balconies[ix].Destroyed) {
+                ixs.push_back(ix);
             }
+        }
+    }
 
+    TDisposition Shoot(std::size_t start) const {
+        auto newDisposition = *this;
+
+        for (std::size_t i = 0; i < 3; i++) {
+            newDisposition.Balconies[(start + i) % Balconies.size()].Destroyed = true;
+        }
+
+        for (const auto& b : newDisposition.Balconies) {
+            if (!b.Destroyed) {
+                newDisposition.CumulativeDamage += b.Monsters;
+            }
+        }
+
+        return newDisposition;
+    }
+
+public:
+    void Step(TResult& result) {
+        // std::cout << "STEP A" << Dump() << " " << CumulativeDamage << std::endl;
+
+        std::vector<std::size_t> starting_points;
+        GetNonDestroyedBalconyIxs(starting_points);
+
+        if (starting_points.size() == 0) {
+            result.MaybeUpdate(CumulativeDamage);
             return;
         }
 
-        for (std::size_t i = 0; i < groups.size(); i++) {
-            for (int j = 0; j < int(groups[i].Size()) - 2; j++) {
-                TGroup::TVec outgoing;
-
-                // copy head
-                std::copy(groups.cbegin(), groups.cbegin() + i, std::back_inserter(outgoing));
-
-                // perform shooting
-                auto result = groups[i].Shoot(j);
-
-                // copy middle
-                std::copy(result.cbegin(), result.cend(), std::back_inserter(outgoing));
-
-                // copy tail
-                std::copy(groups.cbegin() + i + 1, groups.cend(), std::back_inserter(outgoing));
-
-                TDisposition newDisposition(std::move(outgoing));
-
-                newDisposition.MakeStep(cumulativeCost + newDisposition.Fireback(), optimum);
+        for (auto start : starting_points) {
+            TDisposition newDisposition = Shoot(start);
+            // std::cout << "STEP B " << start << " " << newDisposition.Dump() << " " << newDisposition.CumulativeDamage
+            //           << std::endl;
+            if (result.PossibleImrovement(CumulativeDamage)) {
+                // std::cout << "STEP C" << std::endl;
+                newDisposition.Step(result);
             }
         }
     }
-
-    std::size_t Fireback() const {
-        std::size_t cost = 0;
-        for (const auto& g : groups) {
-            cost += g.Fireback();
-        }
-        return cost;
-    }
-
-private:
-    TGroup::TVec groups;
 };
 
 int main() {
     std::size_t N;
     std::cin >> N;
 
-    TGroup::TData numbers;
-    std::size_t number;
+    std::vector<TBalcony> balconies;
+    std::size_t monsters;
     for (; N > 0; N--) {
-        std::cin >> number;
-        numbers.push_back(number);
+        std::cin >> monsters;
+        balconies.push_back(TBalcony{.Monsters = monsters, .Destroyed = false});
     }
 
-    std::size_t optimum = std::accumulate(numbers.cbegin(), numbers.cend(), std::size_t(0));
+    TResult result;
 
-    TDisposition disposition(TGroup::TVec{TGroup(std::move(numbers))});
+    TDisposition(balconies).Step(result);
 
-    disposition.MakeStep(0, optimum);
-
-    std::cout << optimum << std::endl;
+    std::cout << result.GetValue() << std::endl;
 }
