@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20) 
 project(matrix)
 
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
 add_library(matrix_lib INTERFACE)
 set_target_properties(matrix_lib PROPERTIES
     CXX_STANDARD 20
