@@ -13,6 +13,10 @@ macro(run_tests library)
     target_compile_options("${TESTS_BINARY_NAME}" PRIVATE -Wall -Wextra -pedantic -Werror)
     target_include_directories("${TESTS_BINARY_NAME}" PUBLIC "${PROJECT_BINARY_DIR}")
     target_link_libraries("${TESTS_BINARY_NAME}" GTest::gtest_main "${library}")
+    set_target_properties("${TESTS_BINARY_NAME}" PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+    )
 
     gtest_discover_tests("${TESTS_BINARY_NAME}")
 endmacro()

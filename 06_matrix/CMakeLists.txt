@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20) 
 project(matrix)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+# set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
 add_library(matrix_lib INTERFACE)
 set_target_properties(matrix_lib PROPERTIES
@@ -23,5 +23,5 @@ install(TARGETS matrix DESTINATION bin)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
 # include(package)
 # add_package("matrix" "05")# 
-# include(testing)
-# run_tests(matrix_lib)
+include(testing)
+run_tests(matrix_lib)
