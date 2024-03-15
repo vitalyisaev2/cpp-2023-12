@@ -8,6 +8,7 @@
 #include <memory>
 #include <sstream>
 #include <algorithm>
+#include <utility>
 
 namespace NMatrix {
 
@@ -122,6 +123,58 @@ namespace NMatrix {
         const int EmptyRow = -1;
 
         std::list<TCellItem> Items;
+
+    public:
+        struct TIterator {
+            using iterator_category = std::forward_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = std::pair<std::size_t, T>;
+            using pointer = T*;
+            using reference = T&;
+
+            explicit TIterator(std::list<TCellItem>::iterator cellsIt)
+                : cellsIt(cellsIt){};
+
+            // return custom type to satisfy homework requirements
+            value_type operator*() const {
+                // FIXME: is it necessary to make a copy?
+                auto ix = cellsIt->index;
+                auto value = cellsIt->value;
+                return std::make_pair<std::size_t, T>(std::move(ix), std::move(value));
+            }
+
+            T* operator->() {
+                return &cellsIt->value;
+            }
+
+            TIterator& operator++() {
+                // look for a first cell with value other than default
+                do {
+                    cellsIt++;
+                } while (cellsIt->value == V);
+
+                return *this;
+            }
+
+            friend bool operator==(const TIterator& a, const TIterator& b) {
+                return a.cellsIt == b.cellsIt;
+            };
+
+            friend bool operator!=(const TIterator& a, const TIterator& b) {
+                return a.cellsIt != b.cellsIt;
+            };
+
+        private:
+            std::list<TCellItem>::iterator cellsIt;
+        };
+
+        TIterator begin() {
+            return TIterator(Items.begin());
+        }
+
+        TIterator end() {
+            return TIterator(Items.end());
+        }
     };
 
 } //namespace NMatrix

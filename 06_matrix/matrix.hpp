@@ -7,10 +7,12 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <iterator>
 
 #include "row.hpp"
 
 namespace NMatrix {
+
     template <class T, int V>
     class TMatrix {
     private:
@@ -104,5 +106,6 @@ namespace NMatrix {
         std::list<TRowItem> Items; // rows
 
         const TRow<T, V> DefaultRow;
+
     };
 } //namespace NMatrix
