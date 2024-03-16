@@ -143,7 +143,7 @@ namespace NMatrix {
                 return std::make_pair<std::size_t, T>(std::move(ix), std::move(value));
             }
 
-            T* operator->() {
+            pointer operator->() {
                 return &cellsIt->value;
             }
 
