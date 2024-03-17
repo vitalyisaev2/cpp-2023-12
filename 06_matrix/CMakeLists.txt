@@ -21,7 +21,7 @@ set_target_properties(matrix PROPERTIES
 install(TARGETS matrix DESTINATION bin)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
-# include(package)
-# add_package("matrix" "05")# 
+include(package)
+add_package("matrix" "06")
 include(testing)
 run_tests(matrix_lib)
