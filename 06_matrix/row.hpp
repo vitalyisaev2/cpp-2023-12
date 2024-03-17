@@ -132,8 +132,10 @@ namespace NMatrix {
             using pointer = T*;
             using reference = T&;
 
-            explicit TIterator(std::list<TCellItem>::iterator cellsIt)
-                : cellsIt(cellsIt){};
+            explicit TIterator(typename std::list<TCellItem>::iterator cellsBegin,
+                               typename std::list<TCellItem>::iterator cellsEnd)
+                : cellsIt(cellsBegin)
+                , cellsEnd(cellsEnd){};
 
             // return custom type to satisfy homework requirements
             value_type operator*() const {
@@ -151,7 +153,7 @@ namespace NMatrix {
                 // look for a first cell with value other than default
                 do {
                     cellsIt++;
-                } while (cellsIt->value == V);
+                } while (cellsIt != cellsEnd && cellsIt->value == V);
 
                 return *this;
             }
@@ -166,14 +168,15 @@ namespace NMatrix {
 
         private:
             std::list<TCellItem>::iterator cellsIt;
+            std::list<TCellItem>::iterator cellsEnd;
         };
 
         TIterator begin() {
-            return TIterator(Items.begin());
+            return TIterator(Items.begin(), Items.end());
         }
 
         TIterator end() {
-            return TIterator(Items.end());
+            return TIterator(Items.end(), Items.end());
         }
     };
 
