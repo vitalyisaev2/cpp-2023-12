@@ -82,11 +82,12 @@ namespace NMatrix {
             return EmptyRow;
         }
 
-        std::string Dump(std::size_t maxSize) const {
+        std::string Dump(std::size_t colMin, std::size_t colMax) const {
             std::stringstream ss;
 
-            auto it = std::cbegin(Items);
-            std::size_t i = 0;
+            auto it = std::lower_bound(Items.begin(), Items.end(), TCellItem{.index = colMin});
+
+            std::size_t i = colMin;
 
             while (it != std::cend(Items)) {
                 while (i < it->index) {
@@ -97,7 +98,7 @@ namespace NMatrix {
                 ss << it->value;
                 it++;
 
-                if (i != maxSize) {
+                if (i != colMax) {
                     ss << Delimiter;
                 }
 
@@ -108,9 +109,9 @@ namespace NMatrix {
             if (Items.size() > 0) {
                 i = Items.back().index + 1;
             }
-            for (; i <= maxSize; i++) {
+            for (; i <= colMax; i++) {
                 ss << V;
-                if (i != maxSize) {
+                if (i != colMax) {
                     ss << Delimiter;
                 }
             }
@@ -167,8 +168,8 @@ namespace NMatrix {
             };
 
         private:
-            std::list<TCellItem>::iterator cellsIt;
-            std::list<TCellItem>::iterator cellsEnd;
+            typename std::list<TCellItem>::iterator cellsIt;
+            typename std::list<TCellItem>::iterator cellsEnd;
         };
 
         TIterator begin() {

@@ -36,7 +36,7 @@ namespace NMatrix {
         }
 
         TRow<T, V>& operator[](std::size_t ix) {
-            auto lower = std::lower_bound(Items.begin(), Items.end(), TRowItem{.index = ix});
+            auto lower = std::lower_bound(Items.begin(), Items.end(), TRowItem{.index = ix, .row = nullptr});
 
             // list is empty, add first item
             if (lower == Items.end()) {
@@ -64,27 +64,22 @@ namespace NMatrix {
             return sum;
         }
 
-        std::string Dump() const {
+        std::string Dump(std::size_t rowMin, std::size_t rowMax, std::size_t colMin, std::size_t colMax) const {
             std::stringstream ss;
 
-            const auto maxIndex = LongestRowLength();
+            auto it = std::lower_bound(Items.begin(), Items.end(), TRowItem{.index = rowMin});
+            const auto end = std::upper_bound(Items.begin(), Items.end(), TRowItem{.index = rowMax});
+            std::size_t ix = rowMin;
 
-            auto it = std::cbegin(Items);
-            std::size_t ix = 0;
-
-            while (1) {
+            while (it != end) {
                 while (ix < it->index) {
-                    ss << DefaultRow.Dump(maxIndex) << std::endl;
+                    ss << DefaultRow.Dump(colMin, colMax) << std::endl;
                     ix++;
                 }
 
-                ss << it->row->Dump(maxIndex) << std::endl;
+                ss << it->row->Dump(colMin, colMax) << std::endl;
                 it++;
                 ix++;
-
-                if (it == std::cend(Items)) {
-                    break;
-                }
             }
 
             return ss.str();
@@ -103,8 +98,7 @@ namespace NMatrix {
                       typename TRow<T, V>::TIterator cellBegin)
                 : rowsIt(rowsBegin)
                 , rowsEnd(rowsEnd)
-                , cellIt(cellBegin)
-                {};
+                , cellIt(cellBegin){};
 
             value_type operator*() const {
                 // FIXME: is it necessary to make a copy?
@@ -156,7 +150,6 @@ namespace NMatrix {
             return TIterator(Items.end(), Items.end(), Items.back().row->end());
         }
 
-    private:
         std::size_t LongestRowLength() const {
             int result = 0;
 
@@ -169,8 +162,9 @@ namespace NMatrix {
             return static_cast<std::size_t>(result);
         }
 
+    private:
         std::list<TRowItem> Items; // rows
 
-        const TRow<T, V> DefaultRow;
+        const TRow<T, V> DefaultRow = TRow<T, V>();
     };
 } //namespace NMatrix

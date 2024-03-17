@@ -6,21 +6,47 @@
 #include "matrix.hpp"
 #include "row.hpp"
 
+TEST(Row, Dump) {
+    NMatrix::TRow<int, -1> row;
+
+    // fill row, actual values are interleaved with default values
+    for (std::size_t i = 0; i < 10; i++) {
+        if (i % 2 == 0) {
+            row[i] = i;
+        }
+    }
+
+    std::string expected;
+    expected = "0    -1    2    -1    4    -1    6    -1    8    -1";
+    ASSERT_EQ(row.Dump(0, 9), expected);
+
+    expected = "-1    2    -1    4    -1    6    -1    8";
+    ASSERT_EQ(row.Dump(1, 8), expected);
+}
+
 TEST(Matrix, Dump) {
     NMatrix::TMatrix<int, -1> matrix;
 
+    matrix[0][0] = 0;
     matrix[1][1] = 1;
     matrix[2][2] = 2;
     matrix[3][3] = 3;
 
-    const std::string expected =
-        R"(-1    -1    -1    -1
+    std::string expected;
+    expected =
+        R"(0    -1    -1    -1
 -1    1    -1    -1
 -1    -1    2    -1
 -1    -1    -1    3
 )";
 
-    ASSERT_EQ(matrix.Dump(), expected);
+    ASSERT_EQ(matrix.Dump(0, 3, 0, 3), expected);
+
+    expected =
+    R"(1    -1
+-1    2
+)";
+    ASSERT_EQ(matrix.Dump(1, 2, 1, 2), expected);
 }
 
 TEST(Matrix, Size) {
@@ -73,14 +99,6 @@ TEST(Matrix, Iterator) {
     matrix[1][1] = 1;
     matrix[2][2] = 2;
     matrix[3][3] = 3;
-
-    // for (const auto& ix: matrix) {
-    //     std::size_t rowId;
-    //     std::size_t colId;
-    //     std::size_t value;
-    //     std::tie(rowId, colId, value) = ix;
-    //     std::cout << rowId << " " << colId << " " << value << std::endl;
-    // }
 
     std::vector<NMatrix::TMatrix<int, -1>::TIterator::value_type> actual;
     std::copy(matrix.begin(), matrix.end(), std::back_inserter(actual));

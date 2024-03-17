@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20) 
 project(matrix)
 
-# set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+# set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address  -fno-omit-frame-pointer -g -O0")
 
 add_library(matrix_lib INTERFACE)
 set_target_properties(matrix_lib PROPERTIES
