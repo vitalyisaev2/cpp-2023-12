@@ -27,4 +27,4 @@ EOF
 rm -rf ./build/
 mkdir ./build/
 cd ./build
-cmake ../timus/$1
+CXX=/usr/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug ../timus/$1
