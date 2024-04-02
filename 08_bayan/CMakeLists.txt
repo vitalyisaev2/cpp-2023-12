@@ -14,7 +14,10 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME    OFF)
 
 
-add_library(bayan_lib file_checker.cpp)
+add_library(bayan_lib 
+    checksum_computer.cpp
+    file_checker.cpp
+)
 set_target_properties(bayan_lib PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON

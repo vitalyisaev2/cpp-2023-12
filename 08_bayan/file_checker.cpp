@@ -1,4 +1,3 @@
-#include <boost/crc.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -11,7 +10,7 @@ namespace NBayan {
         boost::interprocess::mapped_region region(fm, mode, 0, 0);
 
         const char* blockStart = static_cast<const char*>(region.get_address());
-        // shift to the first byte of requested block 
+        // shift to the first byte of requested block
         blockStart += blockId * BlockSize;
 
         const char* blockEnd = blockStart + BlockSize;
@@ -19,7 +18,7 @@ namespace NBayan {
         if (blockEnd >= regionEnd) {
             blockEnd = regionEnd;
             // TODO: need to fill up to block size
-        } 
+        }
 
         return 0;
     }

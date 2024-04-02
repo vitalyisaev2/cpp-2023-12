@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstdint>
-
 #include <string>
+
+#include "checksum_computer.hpp"
 
 namespace NBayan {
 
@@ -12,13 +13,15 @@ namespace NBayan {
 
     class TFileChecker {
     public:
-        TFileChecker(std::size_t blockSize) noexcept
-            : BlockSize(blockSize){};
+        TFileChecker(std::size_t blockSize, TChecksumComputer checksumComputer) noexcept
+            : BlockSize(blockSize)
+            , ChecksumComputer(std::move(checksumComputer)){};
 
         uint32_t ComputeFileBlockHash(const TFile& file, std::size_t blockId) const;
 
     private:
-        std::size_t BlockSize;
+        const std::size_t BlockSize;
+        const TChecksumComputer ChecksumComputer;
     };
 
 } //namespace NBayan

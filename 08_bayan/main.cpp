@@ -1,5 +1,14 @@
+#include <iostream>
+
+#include <boost/exception/diagnostic_information.hpp>
+
+#include "checksum_computer.hpp"
 #include "file_checker.hpp"
 
 int main() {
-    NBayan::TFileChecker fc(1024);
+    try {
+        NBayan::TFileChecker fileChecker(1024, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
+    } catch (std::exception const& x) {
+        std::cerr << boost::diagnostic_information(x) << std::endl;
+    }
 }
