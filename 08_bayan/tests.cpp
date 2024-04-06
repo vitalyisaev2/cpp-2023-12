@@ -5,8 +5,10 @@
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "file_checker.hpp"
+#include "block_checksum_storage.hpp"
 
 TEST(FileChecker, File) {
     // create temporary file with some data
@@ -22,7 +24,7 @@ TEST(FileChecker, File) {
     ASSERT_EQ(result.Value, 2598427311);
     ASSERT_EQ(result.HasNext, false);
 
-    // block size 4 == divisor of the file size 
+    // block size 4 == divisor of the file size
     NBayan::TFileChecker fileChecker4(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
     result = fileChecker4.ComputeFileBlockHash(filepath, 0);
     ASSERT_EQ(result.Value, 2615402659);
@@ -39,5 +41,20 @@ TEST(FileChecker, File) {
 
     // cleanup file
     boost::filesystem::remove(filepath);
+}
 
+TEST(BlockChecksumStorage, SimpleTree) {
+    boost::filesystem::path f1("/tmp/f1.txt");
+    boost::filesystem::path f2("/tmp/f2.txt");
+
+    NBayan::TBlockChecksumStorage blockChecksumStorage;
+
+    std::optional<NBayan::TBlockChecksumStorage::TResult> actual;
+    NBayan::TBlockChecksumStorage::TResult expected;
+    actual = blockChecksumStorage.RegisterBlock(f1, 0, 111);
+    ASSERT_EQ(actual, std::nullopt);
+
+    actual = blockChecksumStorage.RegisterBlock(f2, 0, 111);
+    expected = {.BlockID = 1, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1}};
+    ASSERT_EQ(*actual, expected);
 }
