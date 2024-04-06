@@ -51,22 +51,14 @@ namespace NBayan {
 
         std::optional<TResult> RegisterBlock(const boost::filesystem::path& filename, std::size_t blockID,
                                              uint32_t blockChecksum) {
-            BOOST_VERIFY_MSG(blockID != 1, "block ID of previously unregistered file must be equal to 0");
-
             auto filenamesIter = Filenames.find(filename);
 
             // If this file wasn't registered before, save the first block and exit.
-            TNode::TPtr& parent = Root;
+            TNode::TPtr parent = nullptr;
             if (filenamesIter == Filenames.end()) {
                 BOOST_VERIFY_MSG(blockID == 0,
                                  "block ID for the file that is registered for the first time must be equal to 0");
-
-                // auto rootsIter =
-                //     Roots.emplace(blockChecksum, std::make_shared<TNode>(filename, blockID, blockChecksum));
-
-                // Filenames[filename] = rootsIter.first->second;
-
-                // return std::nullopt;
+                parent = Root;
             } else {
                 parent = filenamesIter->second;
                 BOOST_VERIFY_MSG(parent->BlockID = blockID - 1, "block IDs must be contiguous");
