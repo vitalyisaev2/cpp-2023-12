@@ -51,10 +51,13 @@ TEST(BlockChecksumStorage, SimpleTree) {
 
     std::optional<NBayan::TBlockChecksumStorage::TResult> actual;
     NBayan::TBlockChecksumStorage::TResult expected;
+
+    // add first file - nothing to check next
     actual = blockChecksumStorage.RegisterBlock(f1, 0, 111);
     ASSERT_EQ(actual, std::nullopt);
 
+    // add second file - need to next block of both files 
     actual = blockChecksumStorage.RegisterBlock(f2, 0, 111);
-    expected = {.BlockID = 1, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1}};
+    expected = {.BlockID = 1, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f2}};
     ASSERT_EQ(*actual, expected);
 }

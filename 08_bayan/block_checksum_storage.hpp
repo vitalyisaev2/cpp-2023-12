@@ -23,13 +23,16 @@ namespace NBayan {
         struct TNode {
             using TPtr = std::shared_ptr<TNode>;
 
-            TNode(boost::filesystem::path filename, std::size_t blockID, uint32_t blockChecksum)
+            TNode(std::optional<boost::filesystem::path> filename, std::optional<std::size_t> blockID,
+                  uint32_t blockChecksum)
                 : BlockID(blockID)
                 , BlockChecksum(blockChecksum) {
-                IsTrailingBlockForFilenames.emplace(std::move(filename));
+                if (filename) {
+                    IsTrailingBlockForFilenames.emplace(std::move(*filename));
+                }
             };
 
-            std::size_t BlockID;
+            std::optional<std::size_t> BlockID;
             uint32_t BlockChecksum;
             TFilenameSet IsTrailingBlockForFilenames;
             std::unordered_map<uint32_t, TPtr> Children;
@@ -41,31 +44,35 @@ namespace NBayan {
             std::size_t BlockID;
             std::unordered_set<boost::filesystem::path, TPathHasher> Filenames;
 
-            bool operator==(const TResult& other) const  {
+            bool operator==(const TResult& other) const {
                 return (BlockID == other.BlockID) && (Filenames == other.Filenames);
             }
         };
 
         std::optional<TResult> RegisterBlock(const boost::filesystem::path& filename, std::size_t blockID,
                                              uint32_t blockChecksum) {
+            BOOST_VERIFY_MSG(blockID != 1, "block ID of previously unregistered file must be equal to 0");
+
             auto filenamesIter = Filenames.find(filename);
 
             // If this file wasn't registered before, save the first block and exit.
+            TNode::TPtr& parent = Root;
             if (filenamesIter == Filenames.end()) {
-                BOOST_VERIFY_MSG(blockID == 0, "block ID of previously unregistered file must be equal to 0");
+                BOOST_VERIFY_MSG(blockID == 0,
+                                 "block ID for the file that is registered for the first time must be equal to 0");
 
-                auto rootsIter =
-                    Roots.emplace(blockChecksum, std::make_shared<TNode>(filename, blockID, blockChecksum));
+                // auto rootsIter =
+                //     Roots.emplace(blockChecksum, std::make_shared<TNode>(filename, blockID, blockChecksum));
 
-                Filenames[filename] = rootsIter.first->second;
+                // Filenames[filename] = rootsIter.first->second;
 
-                return std::nullopt;
+                // return std::nullopt;
+            } else {
+                parent = filenamesIter->second;
+                BOOST_VERIFY_MSG(parent->BlockID = blockID - 1, "block IDs must be contiguous");
             }
 
             // Find the latest (to this moment) block corresponding to the file.
-            auto& parent = filenamesIter->second;
-            BOOST_VERIFY_MSG(parent->BlockID = blockID - 1, "block IDs must be contiguous");
-
             auto childrenIter = parent->Children.find(blockChecksum);
 
             // No block with this checksum found, save this block and exit.
@@ -88,7 +95,7 @@ namespace NBayan {
         };
 
     private:
-        std::unordered_map<uint32_t, TNode::TPtr> Roots;
+        TNode::TPtr Root = std::make_shared<TNode>(std::nullopt, std::nullopt, 0);
         std::unordered_map<boost::filesystem::path, TNode::TPtr, TPathHasher> Filenames;
     };
 } //namespace NBayan
