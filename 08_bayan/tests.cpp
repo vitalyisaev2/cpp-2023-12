@@ -19,19 +19,23 @@ TEST(FileChecker, File) {
     NBayan::TFileChecker fileChecker8(8, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
     auto result = fileChecker8.ComputeFileBlockHash(filepath, 0);
 
-    ASSERT_EQ(result, 2598427311);
+    ASSERT_EQ(result.Value, 2598427311);
+    ASSERT_EQ(result.HasNext, false);
 
     // block size 4 == divisor of the file size 
     NBayan::TFileChecker fileChecker4(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
     result = fileChecker4.ComputeFileBlockHash(filepath, 0);
-    ASSERT_EQ(result, 2615402659);
+    ASSERT_EQ(result.Value, 2615402659);
+    ASSERT_EQ(result.HasNext, true);
     result = fileChecker4.ComputeFileBlockHash(filepath, 1);
-    ASSERT_EQ(result, 2119325191);
+    ASSERT_EQ(result.Value, 2119325191);
+    ASSERT_EQ(result.HasNext, false);
 
     // block size 16 == much greater than the file size
     NBayan::TFileChecker fileChecker16(16, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
     result = fileChecker16.ComputeFileBlockHash(filepath, 0);
-    ASSERT_EQ(result, 2483966577);
+    ASSERT_EQ(result.Value, 2483966577);
+    ASSERT_EQ(result.HasNext, false);
 
     // cleanup file
     boost::filesystem::remove(filepath);

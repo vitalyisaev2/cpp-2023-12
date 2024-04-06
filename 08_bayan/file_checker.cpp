@@ -7,7 +7,8 @@
 #include "file_checker.hpp"
 
 namespace NBayan {
-    uint32_t TFileChecker::ComputeFileBlockHash(const boost::filesystem::path& filepath, std::size_t blockId) const {
+    TFileChecker::TResult TFileChecker::ComputeFileBlockHash(const boost::filesystem::path& filepath,
+                                                             std::size_t blockId) const {
         const boost::interprocess::mode_t mode = boost::interprocess::read_only;
         boost::interprocess::file_mapping fm(filepath.c_str(), mode);
         boost::interprocess::mapped_region region(fm, mode, 0, 0);
@@ -23,11 +24,13 @@ namespace NBayan {
         std::advance(blockStart, blockStartShift);
 
         const auto blockEndShift = blockStartShift + BlockSize;
-        if (blockEndShift <= region.get_size()) {
-            return ChecksumComputer.Compute(blockStart, BlockSize, 0);
+        if (blockEndShift < region.get_size()) {
+            auto value = ChecksumComputer.Compute(blockStart, BlockSize, 0);
+            return TResult{.Value = value, .HasNext = true};
         } else {
-            return ChecksumComputer.Compute(blockStart, region.get_size() - blockStartShift,
-                                            blockEndShift - region.get_size());
+            auto value = ChecksumComputer.Compute(blockStart, region.get_size() - blockStartShift,
+                                                  blockEndShift - region.get_size());
+            return TResult{.Value = value, .HasNext = false};
         }
     }
 } //namespace NBayan
