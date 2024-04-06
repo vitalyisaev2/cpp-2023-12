@@ -8,18 +8,32 @@
 
 #include "file_checker.hpp"
 
-TEST(FileChecker, Simple) {
-    NBayan::TFileChecker fileChecker(8, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
-
+TEST(FileChecker, File) {
     // create temporary file with some data
     auto filepath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     boost::filesystem::ofstream ofs(filepath);
     ofs << "12345678";
+    ofs.close();
 
-    auto result = fileChecker.ComputeFileBlockHash(filepath, 0);
-
-    // cleanup
-    boost::filesystem::remove(filepath);
+    // block size 8 == equal to file size
+    NBayan::TFileChecker fileChecker8(8, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
+    auto result = fileChecker8.ComputeFileBlockHash(filepath, 0);
 
     ASSERT_EQ(result, 2598427311);
+
+    // block size 4 == divisor of the file size 
+    NBayan::TFileChecker fileChecker4(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
+    result = fileChecker4.ComputeFileBlockHash(filepath, 0);
+    ASSERT_EQ(result, 2615402659);
+    result = fileChecker4.ComputeFileBlockHash(filepath, 1);
+    ASSERT_EQ(result, 2119325191);
+
+    // block size 16 == much greater than the file size
+    NBayan::TFileChecker fileChecker16(16, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
+    result = fileChecker16.ComputeFileBlockHash(filepath, 0);
+    ASSERT_EQ(result, 2483966577);
+
+    // cleanup file
+    boost::filesystem::remove(filepath);
+
 }

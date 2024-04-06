@@ -24,12 +24,10 @@ namespace NBayan {
 
         const auto blockEndShift = blockStartShift + BlockSize;
         if (blockEndShift <= region.get_size()) {
-            ChecksumComputer.Compute(blockStart, BlockSize, 0);
+            return ChecksumComputer.Compute(blockStart, BlockSize, 0);
         } else {
-            ChecksumComputer.Compute(blockStart, region.get_size() - blockStartShift,
-                                     blockEndShift - region.get_size());
+            return ChecksumComputer.Compute(blockStart, region.get_size() - blockStartShift,
+                                            blockEndShift - region.get_size());
         }
-
-        return 0;
     }
 } //namespace NBayan

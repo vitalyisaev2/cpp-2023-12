@@ -36,25 +36,8 @@ set_target_properties(bayan PROPERTIES
 
 install(TARGETS bayan DESTINATION bin)
 
-include(CTest)
-include(GoogleTest)
-find_package(GTest)
-
-set(TESTS_BINARY_NAME "bayan_tests")
-
-add_executable("${TESTS_BINARY_NAME}" tests.cpp)
-# target_compile_options("${TESTS_BINARY_NAME}" PRIVATE -Wall -Wextra -pedantic -Werror)
-target_include_directories("${TESTS_BINARY_NAME}" PUBLIC "${PROJECT_BINARY_DIR}")
-target_link_libraries("${TESTS_BINARY_NAME}" GTest::gtest_main "${library}" Boost::system Boost::filesystem)
-set_target_properties("${TESTS_BINARY_NAME}" PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-)
-
-gtest_discover_tests("${TESTS_BINARY_NAME}")
-
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
 # include(package)
 # add_package("bayan" "08")
-# include(testing)
-# run_tests(bayan_lib)
+include(testing)
+run_tests(bayan_lib)
