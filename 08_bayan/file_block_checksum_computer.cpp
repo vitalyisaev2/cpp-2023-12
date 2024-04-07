@@ -2,15 +2,17 @@
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/assert/source_location.hpp>
 #include <boost/throw_exception.hpp>
-#include <iterator>
+#include <boost/log/trivial.hpp>
 
-#include "file_checker.hpp"
+#include "file_block_checksum_computer.hpp"
 
 namespace NBayan {
-    TFileChecker::TResult TFileChecker::ComputeFileBlockHash(const boost::filesystem::path& filepath,
-                                                             std::size_t blockId) const {
+    TFileBlockChecksumComputer::TComputeResult
+    TFileBlockChecksumComputer::Compute(const boost::filesystem::path& filename, std::size_t blockId) const {
+        BOOST_LOG_TRIVIAL(debug) << "Trying to compute hash: filename=" << filename << ", blockId=" << blockId;
+
         const boost::interprocess::mode_t mode = boost::interprocess::read_only;
-        boost::interprocess::file_mapping fm(filepath.c_str(), mode);
+        boost::interprocess::file_mapping fm(filename.c_str(), mode);
         boost::interprocess::mapped_region region(fm, mode, 0, 0);
 
         // invalid request: trying to read non-existing block
@@ -26,11 +28,11 @@ namespace NBayan {
         const auto blockEndShift = blockStartShift + BlockSize;
         if (blockEndShift < region.get_size()) {
             auto value = ChecksumComputer.Compute(blockStart, BlockSize, 0);
-            return TResult{.Value = value, .HasNext = true};
+            return TComputeResult{.Value = value, .HasNext = true};
         } else {
             auto value = ChecksumComputer.Compute(blockStart, region.get_size() - blockStartShift,
                                                   blockEndShift - region.get_size());
-            return TResult{.Value = value, .HasNext = false};
+            return TComputeResult{.Value = value, .HasNext = false};
         }
     }
 } //namespace NBayan

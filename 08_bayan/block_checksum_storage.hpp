@@ -7,15 +7,11 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include "utils.hpp"
+
 namespace NBayan {
     class TBlockChecksumStorage {
     public:
-        struct TPathHasher {
-            std::size_t operator()(const boost::filesystem::path& p) const noexcept {
-                return std::hash<std::string>()(p.string());
-            }
-        };
-
         using TFilenameSet = std::unordered_set<boost::filesystem::path, TPathHasher>;
 
     private:
@@ -53,7 +49,7 @@ namespace NBayan {
         // and asks caller to provide next blocks for some files if it is necessary for
         // file deduplication.
         std::optional<TRegisterResult> Register(const boost::filesystem::path& filename, std::size_t blockID,
-                                             uint32_t blockChecksum);
+                                                uint32_t blockChecksum);
 
     private:
         TNode::TPtr Root = std::make_shared<TNode>(std::nullopt, std::nullopt, 0);

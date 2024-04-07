@@ -8,18 +8,18 @@
 
 namespace NBayan {
 
-    class TFileChecker {
+    class TFileBlockChecksumComputer {
     public:
-        TFileChecker(std::size_t blockSize, TChecksumComputer checksumComputer) noexcept
+        TFileBlockChecksumComputer(std::size_t blockSize, TChecksumComputer checksumComputer) noexcept
             : BlockSize(blockSize)
             , ChecksumComputer(std::move(checksumComputer)){};
 
-        struct TResult {
+        struct TComputeResult {
             uint32_t Value;
             bool HasNext;
         };
 
-        TResult ComputeFileBlockHash(const boost::filesystem::path& filepath, std::size_t blockId) const;
+        TComputeResult Compute(const boost::filesystem::path& filepath, std::size_t blockId) const;
 
     private:
         const std::size_t BlockSize;
