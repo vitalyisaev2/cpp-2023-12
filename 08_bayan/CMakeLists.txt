@@ -18,6 +18,7 @@ add_library(bayan_lib
     block_checksum_storage.cpp
     checksum_computer.cpp
     file_block_checksum_computer.cpp
+    file_crawler.cpp
 )
 set_target_properties(bayan_lib PROPERTIES
     CXX_STANDARD 20

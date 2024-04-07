@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <set>
 #include <unordered_set>
 #include <memory>
 #include <optional>
@@ -12,6 +13,7 @@
 namespace NBayan {
     class TBlockChecksumStorage {
     public:
+        using TPtr = std::shared_ptr<TBlockChecksumStorage>;
         using TFilenameSet = std::unordered_set<boost::filesystem::path, TPathHasher>;
 
     private:
@@ -50,6 +52,15 @@ namespace NBayan {
         // file deduplication.
         std::optional<TRegisterResult> Register(const boost::filesystem::path& filename, std::size_t blockID,
                                                 uint32_t blockChecksum);
+
+        struct TGetDuplicatesResult {
+            using TGroup = std::set<boost::filesystem::path>;
+
+            std::vector<TGroup> Groups;
+        };
+
+        // GetDuplicates returns the list of files with different names, but similair content
+        TGetDuplicatesResult GetDuplicates() const;
 
     private:
         TNode::TPtr Root = std::make_shared<TNode>(std::nullopt, std::nullopt, 0);

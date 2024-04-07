@@ -1,14 +1,12 @@
 #include <boost/assert.hpp>
+#include <vector>
 
 #include "block_checksum_storage.hpp"
 
 namespace NBayan {
-    // RegisterBlock saves the checksum of the block into the internal storage
-    // and asks caller to provide next blocks for some files if it is necessary for
-    // file deduplication.
     std::optional<TBlockChecksumStorage::TRegisterResult>
     TBlockChecksumStorage::Register(const boost::filesystem::path& filename, std::size_t blockID,
-                                         uint32_t blockChecksum) {
+                                    uint32_t blockChecksum) {
         auto filenamesIter = Filenames.find(filename);
 
         // If this file wasn't registered before, save the first block and exit.
@@ -42,5 +40,29 @@ namespace NBayan {
         Filenames[filename] = child;
 
         return std::make_optional<TRegisterResult>({blockID + 1, child->IsTrailingBlockForFilenames});
-    };
+    }
+
+    TBlockChecksumStorage::TGetDuplicatesResult TBlockChecksumStorage::GetDuplicates() const {
+        // Invert the Filenames -> Node mapping
+        std::unordered_map<TNode::TPtr, TGetDuplicatesResult::TGroup> nodesToFilesMap;
+        for (const auto [path, node] : Filenames) {
+            auto nodesIt = nodesToFilesMap.find(node);
+            if (nodesIt == nodesToFilesMap.end()) {
+                nodesToFilesMap[node] = TGetDuplicatesResult::TGroup{path};
+            } else {
+                nodesIt->second.emplace(path);
+            }
+        };
+
+        // Move map content to the resulting container
+        TBlockChecksumStorage::TGetDuplicatesResult result;
+        for (auto& kv: nodesToFilesMap) {
+            if (kv.second.size() > 1) {
+                // duplicate found
+                result.Groups.emplace_back(std::move(kv.second));
+            }
+        }
+
+        return result;
+    }
 } //namespace NBayan

@@ -1,3 +1,4 @@
+#include <memory>
 #include <optional>
 
 #include <boost/filesystem.hpp>
@@ -7,9 +8,9 @@
 #include <boost/interprocess/mapped_region.hpp>
 #include <gtest/gtest.h>
 
+#include "block_checksum_storage.hpp"
 #include "checksum_computer.hpp"
 #include "file_block_checksum_computer.hpp"
-#include "block_checksum_storage.hpp"
 #include "file_crawler.hpp"
 
 TEST(FileChecker, File) {
@@ -90,23 +91,66 @@ void CreateFileWithContent(const boost::filesystem::path& filename, const std::s
     ofs.close();
 }
 
-TEST(FileCrawler, PlainDirSomeDuplicates) {
-    auto tempdir = boost::filesystem::temp_directory_path() / boost::filesystem::path("bayan_tests");
-    boost::filesystem::create_directory(tempdir);
+class FileCrawlerPlainDir: public testing::Test {
+public:
+    // making them static to access from tests
+    static boost::filesystem::path f1;
+    static boost::filesystem::path f2;
+    static boost::filesystem::path f3;
+    static boost::filesystem::path tempdir;
 
-    auto f1 = tempdir / boost::filesystem::path("f1.txt");
-    auto f2 = tempdir / boost::filesystem::path("f2.txt");
-    auto f3 = tempdir / boost::filesystem::path("f3.txt");
+    FileCrawlerPlainDir() {
+        FileCrawlerPlainDir::tempdir = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        boost::filesystem::create_directory(FileCrawlerPlainDir::tempdir);
+        f1 = tempdir / boost::filesystem::path("f1.txt");
+        f2 = tempdir / boost::filesystem::path("f2.txt");
+        f3 = tempdir / boost::filesystem::path("f3.txt");
+    }
 
-    CreateFileWithContent(f1, "12345678");
-    CreateFileWithContent(f2, "12345678");
-    CreateFileWithContent(f3, "12341234");
+    ~FileCrawlerPlainDir() override {
+        boost::filesystem::remove_all(tempdir);
+    }
+};
+
+boost::filesystem::path FileCrawlerPlainDir::f1;
+boost::filesystem::path FileCrawlerPlainDir::f2;
+boost::filesystem::path FileCrawlerPlainDir::f3;
+boost::filesystem::path FileCrawlerPlainDir::tempdir;
+
+TEST_F(FileCrawlerPlainDir, NoDuplicates) {
+    CreateFileWithContent(FileCrawlerPlainDir::f1, "123456781");
+    CreateFileWithContent(FileCrawlerPlainDir::f2, "123456782");
+    CreateFileWithContent(FileCrawlerPlainDir::f3, "123456783");
+
+    auto blockChecksumStorage = std::make_shared<NBayan::TBlockChecksumStorage>();
 
     NBayan::TFileCrawler fileCrawler(
         NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
-        NBayan::TBlockChecksumStorage());
+        blockChecksumStorage);
 
-    fileCrawler.Run({tempdir});
+    fileCrawler.Run({FileCrawlerPlainDir::tempdir});
 
-    boost::filesystem::remove_all(tempdir);
+    auto actual = blockChecksumStorage->GetDuplicates();
+    ASSERT_EQ(actual.Groups.size(), 0);
+}
+
+TEST_F(FileCrawlerPlainDir, SomeDuplicates) {
+    CreateFileWithContent(FileCrawlerPlainDir::f1, "12345678");
+    CreateFileWithContent(FileCrawlerPlainDir::f2, "12345678");
+    CreateFileWithContent(FileCrawlerPlainDir::f3, "12341234");
+
+    auto blockChecksumStorage = std::make_shared<NBayan::TBlockChecksumStorage>();
+
+    NBayan::TFileCrawler fileCrawler(
+        NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
+        blockChecksumStorage);
+
+    fileCrawler.Run({FileCrawlerPlainDir::tempdir});
+
+    auto actual = blockChecksumStorage->GetDuplicates();
+    ASSERT_EQ(actual.Groups.size(), 1);
+
+    using TGroup = NBayan::TBlockChecksumStorage::TGetDuplicatesResult::TGroup;
+    TGroup expectedGroup{FileCrawlerPlainDir::f1, FileCrawlerPlainDir::f2};
+    ASSERT_EQ(actual.Groups[0], expectedGroup);
 }
