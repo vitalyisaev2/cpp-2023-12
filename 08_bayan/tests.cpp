@@ -50,33 +50,33 @@ TEST(BlockChecksumStorage, SimpleTree) {
 
     NBayan::TBlockChecksumStorage blockChecksumStorage;
 
-    std::optional<NBayan::TBlockChecksumStorage::TResult> actual;
-    NBayan::TBlockChecksumStorage::TResult expected;
+    std::optional<NBayan::TBlockChecksumStorage::TRegisterResult> actual;
+    NBayan::TBlockChecksumStorage::TRegisterResult expected;
 
     // add first file - nothing to check next
-    actual = blockChecksumStorage.RegisterBlock(f1, 0, 111);
+    actual = blockChecksumStorage.Register(f1, 0, 111);
     ASSERT_EQ(actual, std::nullopt);
 
     // add second file with the similair block - need to next block of both files 
-    actual = blockChecksumStorage.RegisterBlock(f2, 0, 111);
+    actual = blockChecksumStorage.Register(f2, 0, 111);
     expected = {.BlockID = 1, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f2}};
     ASSERT_EQ(*actual, expected);
 
     // in the next block files have diverged
-    actual = blockChecksumStorage.RegisterBlock(f1, 1, 2221);
+    actual = blockChecksumStorage.Register(f1, 1, 2221);
     ASSERT_EQ(actual, std::nullopt);
 
-    actual = blockChecksumStorage.RegisterBlock(f2, 1, 2222);
+    actual = blockChecksumStorage.Register(f2, 1, 2222);
     ASSERT_EQ(actual, std::nullopt);
 
     // add third file - storage asks for the next block of only this file
-    actual = blockChecksumStorage.RegisterBlock(f3, 0, 111);
+    actual = blockChecksumStorage.Register(f3, 0, 111);
     expected = {.BlockID = 1, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f3}};
     ASSERT_EQ(*actual, expected);
 
     // add next block for third file - it appears to be equal to the block of the first file,
     // so we have to these two files further 
-    actual = blockChecksumStorage.RegisterBlock(f3, 1, 2221);
+    actual = blockChecksumStorage.Register(f3, 1, 2221);
     expected = {.BlockID = 2, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f3}};
     ASSERT_EQ(*actual, expected);
 }

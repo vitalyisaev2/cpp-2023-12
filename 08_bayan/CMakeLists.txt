@@ -17,6 +17,7 @@ set(Boost_USE_STATIC_RUNTIME    OFF)
 add_library(bayan_lib 
     checksum_computer.cpp
     file_checker.cpp
+    block_checksum_storage.cpp
 )
 set_target_properties(bayan_lib PROPERTIES
     CXX_STANDARD 20
