@@ -8,6 +8,15 @@
 #include "checksum_computer.hpp"
 
 namespace NBayan {
+    std::istream& operator>>(std::istream& in, EChecksumType& checksumType) {
+        std::string token;
+        in >> token;
+        if (token == "CRC32")
+            checksumType = EChecksumType::CRC32;
+        else
+            in.setstate(std::ios_base::failbit);
+        return in;
+    }
 
     uint32_t TChecksumComputer::Compute(const char* start, std::size_t size, std::size_t zeroBytesTail) const {
         switch (ChecksumType) {

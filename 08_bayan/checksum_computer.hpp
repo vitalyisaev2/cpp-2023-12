@@ -2,9 +2,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <istream>
 
 namespace NBayan {
     enum class EChecksumType { CRC32 = 1 };
+
+    std::istream& operator>>(std::istream& in, EChecksumType& verboseLevel);
 
     class TChecksumComputer {
     public:
