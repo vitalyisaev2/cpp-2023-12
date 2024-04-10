@@ -23,6 +23,7 @@ namespace NBayan {
 
     private:
         TChecksum ComputeCRC32(const char* start, std::size_t size, std::size_t zeroBytesTail = 0) const;
+        TChecksum ComputeMD5(const char* start, std::size_t size, std::size_t zeroBytesTail = 0) const;
 
         const EChecksumType ChecksumType;
     };
