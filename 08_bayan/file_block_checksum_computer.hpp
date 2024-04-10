@@ -15,7 +15,7 @@ namespace NBayan {
             , ChecksumComputer(std::move(checksumComputer)){};
 
         struct TComputeResult {
-            uint32_t Value;
+            TChecksumComputer::TChecksum Value;
             bool HasNext;
         };
 

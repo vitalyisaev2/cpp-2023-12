@@ -2,11 +2,12 @@
 #include <vector>
 
 #include "block_checksum_storage.hpp"
+#include "checksum_computer.hpp"
 
 namespace NBayan {
     std::optional<TBlockChecksumStorage::TRegisterResult>
     TBlockChecksumStorage::Register(const boost::filesystem::path& filename, std::size_t blockID,
-                                    uint32_t blockChecksum) {
+                                    TChecksumComputer::TChecksum blockChecksum) {
         auto filenamesIter = Filenames.find(filename);
 
         // If this file wasn't registered before, save the first block and exit.

@@ -8,6 +8,7 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include "checksum_computer.hpp"
 #include "utils.hpp"
 
 namespace NBayan {
@@ -21,7 +22,7 @@ namespace NBayan {
             using TPtr = std::shared_ptr<TNode>;
 
             TNode(std::optional<boost::filesystem::path> filename, std::optional<std::size_t> blockID,
-                  uint32_t blockChecksum)
+                  TChecksumComputer::TChecksum blockChecksum)
                 : BlockID(blockID)
                 , BlockChecksum(blockChecksum) {
                 if (filename) {
@@ -30,9 +31,9 @@ namespace NBayan {
             };
 
             std::optional<std::size_t> BlockID;
-            uint32_t BlockChecksum;
+            TChecksumComputer::TChecksum BlockChecksum;
             TFilenameSet IsTrailingBlockForFilenames;
-            std::unordered_map<uint32_t, TPtr> Children;
+            std::unordered_map<TChecksumComputer::TChecksum, TPtr> Children;
         };
 
     public:
@@ -51,7 +52,7 @@ namespace NBayan {
         // and asks caller to provide next blocks for some files if it is necessary for
         // file deduplication.
         std::optional<TRegisterResult> Register(const boost::filesystem::path& filename, std::size_t blockID,
-                                                uint32_t blockChecksum);
+                                                TChecksumComputer::TChecksum blockChecksum);
 
         struct TGetDuplicatesResult {
             using TGroup = std::set<boost::filesystem::path>;
