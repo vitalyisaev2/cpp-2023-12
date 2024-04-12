@@ -12,8 +12,15 @@ namespace NBayan {
         BOOST_LOG_TRIVIAL(debug) << "Trying to compute hash: filename=" << filename << ", blockId=" << blockId;
 
         const boost::interprocess::mode_t mode = boost::interprocess::read_only;
+
         boost::interprocess::file_mapping fm(filename.c_str(), mode);
         boost::interprocess::mapped_region region(fm, mode, 0, 0);
+
+        // empty file
+        if (region.get_size() == 0) {
+            auto value = ChecksumComputer.Compute(nullptr, 0, 1024);
+            return TComputeResult{.Value = value, .HasNext = false};
+        }
 
         // invalid request: trying to read non-existing block
         const auto blockStartShift = blockId * BlockSize;

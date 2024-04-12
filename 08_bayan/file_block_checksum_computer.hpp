@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include <boost/filesystem.hpp>
 
 #include "checksum_computer.hpp"
@@ -20,7 +18,6 @@ namespace NBayan {
         };
 
         TComputeResult Compute(const boost::filesystem::path& filepath, std::size_t blockId) const;
-
     private:
         const std::size_t BlockSize;
         const TChecksumComputer ChecksumComputer;

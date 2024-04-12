@@ -126,9 +126,9 @@ TEST_F(FileCrawlerPlainDir, NoDuplicates) {
 
     NBayan::TFileCrawler fileCrawler(
         NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
-        blockChecksumStorage);
+        blockChecksumStorage, {FileCrawlerPlainDir::tempdir}, true, 1);
 
-    fileCrawler.Run({FileCrawlerPlainDir::tempdir});
+    fileCrawler.Run();
 
     auto actual = blockChecksumStorage->GetDuplicates();
     ASSERT_EQ(actual.Groups.size(), 0);
@@ -143,14 +143,14 @@ TEST_F(FileCrawlerPlainDir, SomeDuplicates) {
 
     NBayan::TFileCrawler fileCrawler(
         NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
-        blockChecksumStorage);
+        blockChecksumStorage, {FileCrawlerPlainDir::tempdir}, true, 1);
 
-    fileCrawler.Run({FileCrawlerPlainDir::tempdir});
+    fileCrawler.Run();
 
     auto actual = blockChecksumStorage->GetDuplicates();
     ASSERT_EQ(actual.Groups.size(), 1);
 
-    using TGroup = NBayan::TBlockChecksumStorage::TGetDuplicatesResult::TGroup;
-    TGroup expectedGroup{FileCrawlerPlainDir::f1, FileCrawlerPlainDir::f2};
+    using TFileGroup = NBayan::TBlockChecksumStorage::TFileGroup;
+    TFileGroup expectedGroup{FileCrawlerPlainDir::f1, FileCrawlerPlainDir::f2};
     ASSERT_EQ(actual.Groups[0], expectedGroup);
 }

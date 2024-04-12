@@ -43,13 +43,17 @@ namespace NBayan {
         return std::make_optional<TRegisterResult>({blockID + 1, child->IsTrailingBlockForFilenames});
     }
 
+    void TBlockChecksumStorage::RegisterEmpty(const boost::filesystem::path& filename) {
+        EmptyFiles.emplace(std::move(filename));
+    }
+
     TBlockChecksumStorage::TGetDuplicatesResult TBlockChecksumStorage::GetDuplicates() const {
         // Invert the Filenames -> Node mapping
-        std::unordered_map<TNode::TPtr, TGetDuplicatesResult::TGroup> nodesToFilesMap;
+        std::unordered_map<TNode::TPtr, TFileGroup> nodesToFilesMap;
         for (const auto [path, node] : Filenames) {
             auto nodesIt = nodesToFilesMap.find(node);
             if (nodesIt == nodesToFilesMap.end()) {
-                nodesToFilesMap[node] = TGetDuplicatesResult::TGroup{path};
+                nodesToFilesMap[node] = TFileGroup{path};
             } else {
                 nodesIt->second.emplace(path);
             }
@@ -57,11 +61,16 @@ namespace NBayan {
 
         // Move map content to the resulting container
         TBlockChecksumStorage::TGetDuplicatesResult result;
-        for (auto& kv: nodesToFilesMap) {
+        for (auto& kv : nodesToFilesMap) {
             if (kv.second.size() > 1) {
                 // duplicate found
                 result.Groups.emplace_back(std::move(kv.second));
             }
+        }
+
+        // Finally add list of empty files
+        if (!EmptyFiles.empty()) {
+            result.Groups.push_back(EmptyFiles);
         }
 
         return result;

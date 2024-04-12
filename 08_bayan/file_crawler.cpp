@@ -1,21 +1,18 @@
-#include <boost/log/trivial.hpp>
+#include <boost/filesystem/directory.hpp>
 
 #include "file_crawler.hpp"
 
 namespace NBayan {
-    void TFileCrawler::Run(std::vector<boost::filesystem::path> roots) {
-        for (const auto& root : roots) {
-            BOOST_LOG_TRIVIAL(debug) << "Traversing dir: " << root;
+    void TFileCrawler::Run() {
+        for (const auto& root : Included) {
+            BOOST_LOG_TRIVIAL(debug) << "Traversing root: " << root;
             BOOST_VERIFY_MSG(boost::filesystem::is_directory(root), "path is not a dir");
 
             // Walk the directory tree and collect the filenames.
-            for (const auto& path : boost::filesystem::recursive_directory_iterator(root)) {
-                if (boost::filesystem::is_regular_file(path)) {
-                    BOOST_LOG_TRIVIAL(debug) << "Discovered file: " << path;
-
-                    // during initialization phase we only ask to compute the first block of each file
-                    Tasks.push(TTask{.BlockId = 0, .Filename = path});
-                }
+            if (Recursive) {
+                IterateDirectory<recursive_dir_iterator>(root);
+            } else {
+                IterateDirectory<dir_iterator>(root);
             }
         }
 

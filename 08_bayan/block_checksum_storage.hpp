@@ -48,16 +48,20 @@ namespace NBayan {
             }
         };
 
-        // RegisterBlock saves the checksum of the block into the internal storage
+        // Register saves the checksum of the block into the internal storage
         // and asks caller to provide next blocks for some files if it is necessary for
         // file deduplication.
         std::optional<TRegisterResult> Register(const boost::filesystem::path& filename, std::size_t blockID,
                                                 TChecksumComputer::TChecksum blockChecksum);
 
-        struct TGetDuplicatesResult {
-            using TGroup = std::set<boost::filesystem::path>;
+        // RegisterEmpty is a special path for preserving empty files,
+        // which may be considered as duplicates as well.
+        void RegisterEmpty(const boost::filesystem::path& filename);
 
-            std::vector<TGroup> Groups;
+        using TFileGroup = std::set<boost::filesystem::path>;
+
+        struct TGetDuplicatesResult {
+            std::vector<TFileGroup> Groups;
         };
 
         // GetDuplicates returns the list of files with different names, but similair content
@@ -66,5 +70,6 @@ namespace NBayan {
     private:
         TNode::TPtr Root = std::make_shared<TNode>(std::nullopt, std::nullopt, 0);
         std::unordered_map<boost::filesystem::path, TNode::TPtr, TPathHasher> Filenames;
+        TFileGroup EmptyFiles;
     };
 } //namespace NBayan
