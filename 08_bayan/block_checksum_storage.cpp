@@ -16,20 +16,25 @@ namespace NBayan {
             BOOST_VERIFY_MSG(blockID == 0,
                              "block ID for the file that is registered for the first time must be equal to 0");
             parent = Root;
+            std::cout << "REGISTER 0: " << filename << " " << parent << " (root)" << std::endl;
         } else {
             parent = filenamesIter->second;
             BOOST_VERIFY_MSG(parent->BlockID = blockID - 1, "block IDs must be contiguous");
+            std::cout << "REGISTER 0: " << filename << " " << parent << " (non root)" << std::endl;
         }
 
         // Find the latest (to this moment) block corresponding to the file.
         auto childrenIter = parent->Children.find(blockChecksum);
 
-        // No block with this checksum found, save this block and exit.
+        // No block with this checksum found, create new child node responsible for this block checksum and exit.
         if (childrenIter == parent->Children.end()) {
             auto child = std::make_shared<TNode>(filename, blockID, blockChecksum);
             parent->Children[blockChecksum] = child;
             Filenames[filename] = std::move(child);
             parent->IsTrailingBlockForFilenames.erase(filename);
+
+            std::cout << "REGISTER 1: " << filename << " " << child << " " << parent->Children.size() << " "
+                      << parent->IsTrailingBlockForFilenames.size() << " " << Filenames.size() << std::endl;
 
             return std::nullopt;
         }
@@ -39,6 +44,9 @@ namespace NBayan {
         auto& child = childrenIter->second;
         child->IsTrailingBlockForFilenames.emplace(filename);
         Filenames[filename] = child;
+
+        std::cout << "REGISTER 2: " << filename << " " << child << " " << child->IsTrailingBlockForFilenames.size()
+                  << " " << Filenames.size() << std::endl;
 
         return std::make_optional<TRegisterResult>({blockID + 1, child->IsTrailingBlockForFilenames});
     }

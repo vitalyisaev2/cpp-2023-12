@@ -13,7 +13,7 @@
 #include "file_block_checksum_computer.hpp"
 #include "file_crawler.hpp"
 
-TEST(FileChecker, File) {
+TEST(FileBlockChecksumComputer, CRC32) {
     // create temporary file with some data
     auto filepath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     boost::filesystem::ofstream ofs(filepath);
@@ -46,7 +46,7 @@ TEST(FileChecker, File) {
     boost::filesystem::remove(filepath);
 }
 
-TEST(BlockChecksumStorage, SimpleTree) {
+TEST(BlockChecksumStorage, TreeDepth2) {
     // These are just pathes, not real files
     boost::filesystem::path f1("/tmp/f1.txt");
     boost::filesystem::path f2("/tmp/f2.txt");
@@ -83,6 +83,97 @@ TEST(BlockChecksumStorage, SimpleTree) {
     actual = blockChecksumStorage.Register(f3, 1, 2221);
     expected = {.BlockID = 2, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f3}};
     ASSERT_EQ(*actual, expected);
+
+    // f1 and f3 are duplicates at this moment
+    auto duplicates = blockChecksumStorage.GetDuplicates();
+    ASSERT_EQ(duplicates.Groups.size(), 1);
+
+    using TFileGroup = NBayan::TBlockChecksumStorage::TFileGroup;
+    TFileGroup expectedGroup{f1, f3};
+    ASSERT_EQ(duplicates.Groups[0], expectedGroup);
+}
+
+TEST(BlockChecksumStorage, TreeDepth3Duplicates) {
+    // These are just pathes, not real files
+    boost::filesystem::path f1("/tmp/f1.txt");
+    boost::filesystem::path f2("/tmp/f2.txt");
+
+    NBayan::TBlockChecksumStorage blockChecksumStorage;
+
+    std::optional<NBayan::TBlockChecksumStorage::TRegisterResult> actual;
+    NBayan::TBlockChecksumStorage::TRegisterResult expected;
+
+    // add first file - nothing to check next
+    actual = blockChecksumStorage.Register(f1, 0, 10);
+    ASSERT_EQ(actual, std::nullopt);
+
+    // add second file with the similair block - need to next block of both files
+    actual = blockChecksumStorage.Register(f2, 0, 10);
+    expected = {.BlockID = 1, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f2}};
+    ASSERT_EQ(*actual, expected);
+
+    // second blocks are the same too
+    actual = blockChecksumStorage.Register(f1, 1, 11);
+    ASSERT_EQ(actual, std::nullopt);
+
+    actual = blockChecksumStorage.Register(f2, 1, 11);
+    expected = {.BlockID = 2, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f2}};
+    ASSERT_EQ(*actual, expected);
+
+    // third blocks are the same too
+    actual = blockChecksumStorage.Register(f1, 2, 12);
+    ASSERT_EQ(actual, std::nullopt);
+
+    actual = blockChecksumStorage.Register(f2, 2, 12);
+    expected = {.BlockID = 3, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f2}};
+    ASSERT_EQ(*actual, expected);
+
+    // both files should be considered as duplicates now
+    auto duplicates = blockChecksumStorage.GetDuplicates();
+    ASSERT_EQ(duplicates.Groups.size(), 1);
+
+    using TFileGroup = NBayan::TBlockChecksumStorage::TFileGroup;
+    TFileGroup expectedGroup{f1, f2};
+    ASSERT_EQ(duplicates.Groups[0], expectedGroup);
+}
+
+TEST(BlockChecksumStorage, TreeDepth3NoDuplicates) {
+    // These are just pathes, not real files
+    boost::filesystem::path f1("/tmp/f1.txt");
+    boost::filesystem::path f2("/tmp/f2.txt");
+
+    NBayan::TBlockChecksumStorage blockChecksumStorage;
+
+    std::optional<NBayan::TBlockChecksumStorage::TRegisterResult> actual;
+    NBayan::TBlockChecksumStorage::TRegisterResult expected;
+
+    // add first file - nothing to check next
+    actual = blockChecksumStorage.Register(f1, 0, 10);
+    ASSERT_EQ(actual, std::nullopt);
+
+    // add second file with the similair block - need to next block of both files
+    actual = blockChecksumStorage.Register(f2, 0, 10);
+    expected = {.BlockID = 1, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f2}};
+    ASSERT_EQ(*actual, expected);
+
+    // second blocks are the same too
+    actual = blockChecksumStorage.Register(f1, 1, 11);
+    ASSERT_EQ(actual, std::nullopt);
+
+    actual = blockChecksumStorage.Register(f2, 1, 11);
+    expected = {.BlockID = 2, .Filenames = NBayan::TBlockChecksumStorage::TFilenameSet{f1, f2}};
+    ASSERT_EQ(*actual, expected);
+
+    // third blocks are different
+    actual = blockChecksumStorage.Register(f1, 2, 121);
+    ASSERT_EQ(actual, std::nullopt);
+
+    actual = blockChecksumStorage.Register(f2, 2, 122);
+    ASSERT_EQ(actual, std::nullopt);
+
+    // no duplicates now
+    auto duplicates = blockChecksumStorage.GetDuplicates();
+    ASSERT_EQ(duplicates.Groups.size(), 0);
 }
 
 void CreateFileWithContent(const boost::filesystem::path& filename, const std::string& data) {
