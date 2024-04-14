@@ -25,22 +25,22 @@ TEST(FileBlockChecksumComputer, CRC32) {
     auto result = fileChecker8.Compute(filepath, 0);
 
     ASSERT_EQ(result.Value, 2598427311);
-    ASSERT_EQ(result.HasNext, false);
+    ASSERT_EQ(result.NextBlockID, std::nullopt);
 
     // block size 4 == divisor of the file size
     NBayan::TFileBlockChecksumComputer fileChecker4(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
     result = fileChecker4.Compute(filepath, 0);
     ASSERT_EQ(result.Value, 2615402659);
-    ASSERT_EQ(result.HasNext, true);
+    ASSERT_EQ(result.NextBlockID, 1);
     result = fileChecker4.Compute(filepath, 1);
     ASSERT_EQ(result.Value, 2119325191);
-    ASSERT_EQ(result.HasNext, false);
+    ASSERT_EQ(result.NextBlockID, std::nullopt);
 
     // block size 16 == much greater than the file size
     NBayan::TFileBlockChecksumComputer fileChecker16(16, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32));
     result = fileChecker16.Compute(filepath, 0);
     ASSERT_EQ(result.Value, 2483966577);
-    ASSERT_EQ(result.HasNext, false);
+    ASSERT_EQ(result.NextBlockID, std::nullopt);
 
     // cleanup file
     boost::filesystem::remove(filepath);

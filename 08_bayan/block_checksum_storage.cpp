@@ -1,4 +1,5 @@
 #include <boost/assert.hpp>
+#include <sstream>
 #include <vector>
 
 #include "block_checksum_storage.hpp"
@@ -16,11 +17,13 @@ namespace NBayan {
             BOOST_VERIFY_MSG(blockID == 0,
                              "block ID for the file that is registered for the first time must be equal to 0");
             parent = Root;
-            std::cout << "REGISTER 0: " << filename << " " << parent << " (root)" << std::endl;
+            std::cout << "REGISTER 0: filename=" << filename << ", blockID=" << blockID
+                      << ", checksum=" << blockChecksum << ", parent=" << parent << " (root)" << std::endl;
         } else {
             parent = filenamesIter->second;
             BOOST_VERIFY_MSG(parent->BlockID = blockID - 1, "block IDs must be contiguous");
-            std::cout << "REGISTER 0: " << filename << " " << parent << " (non root)" << std::endl;
+            std::cout << "REGISTER 0: filename=" << filename << ", blockID=" << blockID
+                      << ", checksum=" << blockChecksum << ", parent=" << parent << " (non root)" << std::endl;
         }
 
         // Find the latest (to this moment) block corresponding to the file.
@@ -33,8 +36,11 @@ namespace NBayan {
             Filenames[filename] = std::move(child);
             parent->IsTrailingBlockForFilenames.erase(filename);
 
-            std::cout << "REGISTER 1: " << filename << " " << child << " " << parent->Children.size() << " "
-                      << parent->IsTrailingBlockForFilenames.size() << " " << Filenames.size() << std::endl;
+            std::cout << "REGISTER 1: filename=" << filename << ", blockID=" << blockID
+                      << ", checksum=" << blockChecksum << ", parent=" << parent << ", child=" << child
+                      << ", childrenSize= " << parent->Children.size()
+                      << ", isTrailingBlockForFilenamesSize=" << parent->IsTrailingBlockForFilenames.size()
+                      << ", filenamesSize=" << Filenames.size() << std::endl;
 
             return std::nullopt;
         }
@@ -45,8 +51,16 @@ namespace NBayan {
         child->IsTrailingBlockForFilenames.emplace(filename);
         Filenames[filename] = child;
 
-        std::cout << "REGISTER 2: " << filename << " " << child << " " << child->IsTrailingBlockForFilenames.size()
-                  << " " << Filenames.size() << std::endl;
+        std::cout << "REGISTER 2: filename=" << filename << ", blockID=" << blockID << ", checksum=" << blockChecksum
+                  << ", parent=" << parent << ", child=" << child << ", childrenSize= " << parent->Children.size()
+                  << ", isTrailingBlockForFilenamesSize=" << parent->IsTrailingBlockForFilenames.size()
+                  << ", filenamesSize=" << Filenames.size() << std::endl;
+        
+
+        // std::stringstream ss;
+        // for (const auto& x: child->IsTrailingBlockForFilenames) {
+        //     ss << x << " ";
+        // }
 
         return std::make_optional<TRegisterResult>({blockID + 1, child->IsTrailingBlockForFilenames});
     }

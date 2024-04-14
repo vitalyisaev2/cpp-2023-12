@@ -29,22 +29,32 @@ namespace NBayan {
         // extract next task from the queue
         auto task = Tasks.front();
 
-        // ignore read request if file has been already read until the end
         auto fileReadStateIt = FileReadState.find(task.Filename);
         if (fileReadStateIt != FileReadState.end()) {
+
+            // ignore read request if file has been already read until the end
             if (!fileReadStateIt->second) {
+                // std::cout << "IGNORE 1" << std::endl;
+                return;
+            }
+
+            // outdated read
+            if (task.BlockId < fileReadStateIt->second.value()) {
+                // std::cout << "IGNORE 2: " << task.BlockId << " " << fileReadStateIt->second.value() << std::endl;
                 return;
             }
         }
 
         // compute checksum of the requested block
         auto computeResult = FileBlockChecksumComputer.Compute(task.Filename, task.BlockId);
-        FileReadState[task.Filename] = computeResult.HasNext;
+        // preserve information about the next block that should be read
+        FileReadState[task.Filename] = computeResult.NextBlockID;
 
         // register checksum in the storage
         auto registerResult = BlockChecksumStorage->Register(task.Filename, task.BlockId, computeResult.Value);
         if (registerResult) {
             for (const auto& path : registerResult->Filenames) {
+                // std::cout << "RESULT: " << path << " " << registerResult->BlockID << std::endl;
                 Tasks.push(TTask{.BlockId = registerResult->BlockID, .Filename = path});
             }
         }

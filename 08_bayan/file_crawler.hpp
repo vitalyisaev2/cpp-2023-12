@@ -77,8 +77,9 @@ namespace NBayan {
         std::size_t MinFileSize;
 
         // FileReadState tracks the progress of the particular file reading.
-        // If it's false, that means that the file has been read to the end,
+        // It contains the number of block that should be read the next time.
+        // If it's nullopt, that means that the file has been read to the end,
         // and no other blocks left.
-        std::unordered_map<boost::filesystem::path, bool, TPathHasher> FileReadState;
+        std::unordered_map<boost::filesystem::path, std::optional<std::size_t>, TPathHasher> FileReadState;
     };
 } //namespace NBayan

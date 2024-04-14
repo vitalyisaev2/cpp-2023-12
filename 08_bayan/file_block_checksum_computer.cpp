@@ -9,7 +9,7 @@
 namespace NBayan {
     TFileBlockChecksumComputer::TComputeResult
     TFileBlockChecksumComputer::Compute(const boost::filesystem::path& filename, std::size_t blockId) const {
-        BOOST_LOG_TRIVIAL(debug) << "Trying to compute hash: filename=" << filename << ", blockId=" << blockId;
+        // BOOST_LOG_TRIVIAL(debug) << "Trying to compute hash: filename=" << filename << ", blockId=" << blockId;
 
         const boost::interprocess::mode_t mode = boost::interprocess::read_only;
 
@@ -19,7 +19,7 @@ namespace NBayan {
         // empty file
         if (region.get_size() == 0) {
             auto value = ChecksumComputer.Compute(nullptr, 0, 1024);
-            return TComputeResult{.Value = value, .HasNext = false};
+            return TComputeResult{.Value = value, .NextBlockID = std::nullopt};
         }
 
         // invalid request: trying to read non-existing block
@@ -35,11 +35,11 @@ namespace NBayan {
         const auto blockEndShift = blockStartShift + BlockSize;
         if (blockEndShift < region.get_size()) {
             auto value = ChecksumComputer.Compute(blockStart, BlockSize, 0);
-            return TComputeResult{.Value = value, .HasNext = true};
+            return TComputeResult{.Value = value, .NextBlockID = blockId + 1};
         } else {
             auto value = ChecksumComputer.Compute(blockStart, region.get_size() - blockStartShift,
                                                   blockEndShift - region.get_size());
-            return TComputeResult{.Value = value, .HasNext = false};
+            return TComputeResult{.Value = value, .NextBlockID = std::nullopt};
         }
     }
 } //namespace NBayan
