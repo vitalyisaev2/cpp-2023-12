@@ -27,7 +27,8 @@ set_target_properties(bayan_lib PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 target_include_directories(bayan_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(bayan_lib
+target_link_libraries(
+    bayan_lib
     Boost::program_options
     Boost::system
     Boost::filesystem
@@ -47,7 +48,15 @@ set_target_properties(bayan PROPERTIES
 install(TARGETS bayan DESTINATION bin)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
-# include(package)
-# add_package("bayan" "08")
+include(package)
+add_package("bayan" "08")
 include(testing)
-run_tests(bayan_lib)
+set(LIBRARY_NAMES_LIST 
+    bayan_lib
+    Boost::program_options
+    Boost::system
+    Boost::filesystem
+    Boost::log
+    OpenSSL::Crypto
+)
+run_tests("${LIBRARY_NAMES_LIST}")
