@@ -18,10 +18,12 @@ namespace NBayan {
     public:
         TFileCrawler(TFileBlockChecksumComputer fileBlockChecksumComputer,
                      const TBlockChecksumStorage::TPtr& blockChecksumStorage,
-                     std::vector<boost::filesystem::path> included, bool recursive, std::size_t minFileSize)
+                     std::vector<boost::filesystem::path> included, std::vector<boost::filesystem::path> excluded,
+                     bool recursive, std::size_t minFileSize)
             : FileBlockChecksumComputer(std::move(fileBlockChecksumComputer))
             , BlockChecksumStorage(blockChecksumStorage)
-            , Included(included)
+            , Included(TransformPathesToAbsolute(included))
+            , Excluded(TransformPathesToAbsolute(excluded))
             , Recursive(recursive)
             , MinFileSize(minFileSize) {
         }
@@ -30,6 +32,9 @@ namespace NBayan {
         void Run();
 
     private:
+        static std::vector<boost::filesystem::path>
+        TransformPathesToAbsolute(const std::vector<boost::filesystem::path>& src);
+
         struct TTask {
             std::size_t BlockId;
             boost::filesystem::path Filename;
@@ -44,35 +49,20 @@ namespace NBayan {
         using dir_iterator = boost::filesystem::directory_iterator;
         using recursive_dir_iterator = boost::filesystem::recursive_directory_iterator;
 
-        // IterateDirectory finds and filters files to check
+        // IterateDirectory finds and filters files
         template <class It>
         void IterateDirectory(const boost::filesystem::path& dirPath) {
-            for (const auto& path : It(dirPath)) {
-                if (!boost::filesystem::is_regular_file(path)) {
-                    continue;
-                }
-
-                const auto fileSize = boost::filesystem::file_size(path);
-
-                if (fileSize < MinFileSize) {
-                    BOOST_LOG_TRIVIAL(debug) << "Omitting file as too small: " << path;
-                    continue;
-                }
-
-                if (fileSize == 0) {
-                    BOOST_LOG_TRIVIAL(debug) << "Omitting empty file: " << path;
-                    BlockChecksumStorage->RegisterEmpty(std::move(path));
-                    continue;
-                }
-
-                BOOST_LOG_TRIVIAL(debug) << "Discovered non-empty file: " << path;
-                Tasks.push(TTask{.BlockId = 0, .Filename = std::move(path)});
+            for (auto& path : It(dirPath)) {
+                HandleDirectoryEntry(path);
             }
         }
+
+        void HandleDirectoryEntry(const boost::filesystem::directory_entry& path);
 
         TFileBlockChecksumComputer FileBlockChecksumComputer;
         TBlockChecksumStorage::TPtr BlockChecksumStorage;
         std::vector<boost::filesystem::path> Included;
+        std::vector<boost::filesystem::path> Excluded;
         bool Recursive;
         std::size_t MinFileSize;
 

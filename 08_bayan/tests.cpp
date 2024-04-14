@@ -188,25 +188,34 @@ public:
     static boost::filesystem::path f1;
     static boost::filesystem::path f2;
     static boost::filesystem::path f3;
-    static boost::filesystem::path tempdir;
+    static boost::filesystem::path root;
+    static boost::filesystem::path tempdir1;
+    static boost::filesystem::path tempdir2;
 
     FileCrawlerPlainDir() {
-        FileCrawlerPlainDir::tempdir = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-        boost::filesystem::create_directory(FileCrawlerPlainDir::tempdir);
-        f1 = tempdir / boost::filesystem::path("f1.txt");
-        f2 = tempdir / boost::filesystem::path("f2.txt");
-        f3 = tempdir / boost::filesystem::path("f3.txt");
+        FileCrawlerPlainDir::root = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        FileCrawlerPlainDir::tempdir1 = root / boost::filesystem::path("dir1");
+        FileCrawlerPlainDir::tempdir2 = root / boost::filesystem::path("dir2");
+        boost::filesystem::create_directory(FileCrawlerPlainDir::root);
+        boost::filesystem::create_directory(FileCrawlerPlainDir::tempdir1);
+        boost::filesystem::create_directory(FileCrawlerPlainDir::tempdir2);
+        f1 = tempdir1 / boost::filesystem::path("f1.txt");
+        f2 = tempdir1 / boost::filesystem::path("f2.txt");
+        f3 = tempdir2 / boost::filesystem::path("f3.txt");
     }
 
     ~FileCrawlerPlainDir() override {
-        boost::filesystem::remove_all(tempdir);
+        boost::filesystem::remove_all(tempdir1);
+        boost::filesystem::remove_all(tempdir2);
     }
 };
 
 boost::filesystem::path FileCrawlerPlainDir::f1;
 boost::filesystem::path FileCrawlerPlainDir::f2;
 boost::filesystem::path FileCrawlerPlainDir::f3;
-boost::filesystem::path FileCrawlerPlainDir::tempdir;
+boost::filesystem::path FileCrawlerPlainDir::root;
+boost::filesystem::path FileCrawlerPlainDir::tempdir1;
+boost::filesystem::path FileCrawlerPlainDir::tempdir2;
 
 TEST_F(FileCrawlerPlainDir, NoDuplicates) {
     CreateFileWithContent(FileCrawlerPlainDir::f1, "123456781");
@@ -217,7 +226,7 @@ TEST_F(FileCrawlerPlainDir, NoDuplicates) {
 
     NBayan::TFileCrawler fileCrawler(
         NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
-        blockChecksumStorage, {FileCrawlerPlainDir::tempdir}, true, 1);
+        blockChecksumStorage, {FileCrawlerPlainDir::tempdir1, FileCrawlerPlainDir::tempdir2}, {}, true, 1);
 
     fileCrawler.Run();
 
@@ -234,13 +243,35 @@ TEST_F(FileCrawlerPlainDir, SomeDuplicates) {
 
     NBayan::TFileCrawler fileCrawler(
         NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
-        blockChecksumStorage, {FileCrawlerPlainDir::tempdir}, true, 1);
+        blockChecksumStorage, {FileCrawlerPlainDir::tempdir1, FileCrawlerPlainDir::tempdir2}, {}, true, 1);
 
     fileCrawler.Run();
 
     auto actual = blockChecksumStorage->GetDuplicates();
     ASSERT_EQ(actual.Groups.size(), 1);
 
+    using TFileGroup = NBayan::TBlockChecksumStorage::TFileGroup;
+    TFileGroup expectedGroup{FileCrawlerPlainDir::f1, FileCrawlerPlainDir::f2};
+    ASSERT_EQ(actual.Groups[0], expectedGroup);
+}
+
+TEST_F(FileCrawlerPlainDir, ExcludedDir) {
+    CreateFileWithContent(FileCrawlerPlainDir::f1, "12345678");
+    CreateFileWithContent(FileCrawlerPlainDir::f2, "12345678");
+    CreateFileWithContent(FileCrawlerPlainDir::f3, "12345678");
+
+    auto blockChecksumStorage = std::make_shared<NBayan::TBlockChecksumStorage>();
+
+    NBayan::TFileCrawler fileCrawler(
+        NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
+        blockChecksumStorage, {FileCrawlerPlainDir::root}, {FileCrawlerPlainDir::tempdir2}, true, 1);
+
+    fileCrawler.Run();
+
+    auto actual = blockChecksumStorage->GetDuplicates();
+    ASSERT_EQ(actual.Groups.size(), 1);
+
+    // f3 is missing as it belongs to excluded dir
     using TFileGroup = NBayan::TBlockChecksumStorage::TFileGroup;
     TFileGroup expectedGroup{FileCrawlerPlainDir::f1, FileCrawlerPlainDir::f2};
     ASSERT_EQ(actual.Groups[0], expectedGroup);

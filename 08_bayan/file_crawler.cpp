@@ -1,12 +1,25 @@
 #include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include "file_crawler.hpp"
 
 namespace NBayan {
+    std::vector<boost::filesystem::path>
+    TFileCrawler::TransformPathesToAbsolute(const std::vector<boost::filesystem::path>& src) {
+        std::vector<boost::filesystem::path> dst;
+        dst.reserve(src.size());
+
+        for (const auto& item : src) {
+            BOOST_VERIFY_MSG(boost::filesystem::is_directory(item), "path is not a dir");
+            dst.emplace_back(boost::filesystem::absolute(item));
+        }
+
+        return dst;
+    }
+
     void TFileCrawler::Run() {
         for (const auto& root : Included) {
             BOOST_LOG_TRIVIAL(debug) << "Traversing root: " << root;
-            BOOST_VERIFY_MSG(boost::filesystem::is_directory(root), "path is not a dir");
 
             // Walk the directory tree and collect the filenames.
             if (Recursive) {
@@ -25,13 +38,44 @@ namespace NBayan {
         return;
     }
 
+    void TFileCrawler::HandleDirectoryEntry(const boost::filesystem::directory_entry& path) {
+        if (!boost::filesystem::is_regular_file(path)) {
+            return;
+        }
+
+        // omit files belonging to excluded directory
+        for (const auto& excl : Excluded) {
+            auto pathStr = path.path().string();
+            auto exclStr = excl.string();
+            auto res = std::mismatch(exclStr.begin(), exclStr.end(), pathStr.begin());
+            if (res.first == exclStr.end()) {
+                return;
+            }
+        }
+
+        const auto fileSize = boost::filesystem::file_size(path);
+
+        if (fileSize < MinFileSize) {
+            BOOST_LOG_TRIVIAL(debug) << "Omitting file as too small: " << path;
+            return;
+        }
+
+        if (fileSize == 0) {
+            BOOST_LOG_TRIVIAL(debug) << "Omitting empty file: " << path;
+            BlockChecksumStorage->RegisterEmpty(std::move(path));
+            return;
+        }
+
+        BOOST_LOG_TRIVIAL(debug) << "Discovered non-empty file: " << path;
+        Tasks.push(TTask{.BlockId = 0, .Filename = std::move(path)});
+    }
+
     void TFileCrawler::HandleNextTask() {
         // extract next task from the queue
         auto task = Tasks.front();
 
         auto fileReadStateIt = FileReadState.find(task.Filename);
         if (fileReadStateIt != FileReadState.end()) {
-
             // ignore read request if file has been already read until the end
             if (!fileReadStateIt->second) {
                 // std::cout << "IGNORE 1" << std::endl;

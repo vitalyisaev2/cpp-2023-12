@@ -20,18 +20,22 @@
 
 namespace po = boost::program_options;
 
-void runCrawler(const NBayan::TBlockChecksumStorage::TPtr& blockChecksumStorage, std::size_t blockSize,
-                const std::vector<std::string> included, const NBayan::EChecksumType checksumType, bool recursive,
-                std::size_t maxChecksumSize) {
-    // Prepare list of root directories to start crawling from
-    std::vector<boost::filesystem::path> roots;
-    roots.reserve(included.size());
-    std::transform(included.cbegin(), included.cend(), std::back_inserter(roots),
+std::vector<boost::filesystem::path> StringsToPathes(const std::vector<std::string>& src) {
+    std::vector<boost::filesystem::path> dst;
+    dst.reserve(src.size());
+    std::transform(src.cbegin(), src.cend(), std::back_inserter(dst),
                    [](const std::string& incl) { return boost::filesystem::path(incl); });
+    return dst;
+}
+
+void runCrawler(const NBayan::TBlockChecksumStorage::TPtr& blockChecksumStorage, std::size_t blockSize,
+                const std::vector<std::string> included, const std::vector<std::string> excluded,
+                const NBayan::EChecksumType checksumType, bool recursive, std::size_t maxChecksumSize) {
+    // Prepare list of root directories to start crawling from
 
     // Run crawler
     NBayan::TFileCrawler fileCrawler(NBayan::TFileBlockChecksumComputer(blockSize, checksumType), blockChecksumStorage,
-                                     roots, recursive, maxChecksumSize);
+                                     StringsToPathes(included), StringsToPathes(excluded), recursive, maxChecksumSize);
 
     fileCrawler.Run();
 }
@@ -87,12 +91,13 @@ int main(int argc, char** argv) {
         auto blockChecksumStorage = std::make_shared<NBayan::TBlockChecksumStorage>();
         const std::size_t blockSize = vm["block-size"].as<std::size_t>();
         const auto included = vm["include"].as<std::vector<std::string>>();
+        const auto excluded = vm["exclude"].as<std::vector<std::string>>();
         const auto checksumType = NBayan::EChecksumTypeFromString(vm["checksum-type"].as<std::string>());
         const auto recursive = vm["recursive"].as<bool>();
         const auto minFileSize = vm["min-file-size"].as<std::size_t>();
 
         // parse results
-        runCrawler(blockChecksumStorage, blockSize, included, checksumType, recursive, minFileSize);
+        runCrawler(blockChecksumStorage, blockSize, included, excluded, checksumType, recursive, minFileSize);
         printResults(blockChecksumStorage);
     } catch (std::exception const& x) {
         std::cerr << x.what() << std::endl << boost::diagnostic_information(x) << std::endl;
