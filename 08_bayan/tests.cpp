@@ -201,7 +201,7 @@ public:
         boost::filesystem::create_directory(FileCrawlerPlainDir::tempdir2);
         f1 = tempdir1 / boost::filesystem::path("f1.txt");
         f2 = tempdir1 / boost::filesystem::path("f2.txt");
-        f3 = tempdir2 / boost::filesystem::path("f3.txt");
+        f3 = tempdir2 / boost::filesystem::path("f3.pdf");
     }
 
     ~FileCrawlerPlainDir() override {
@@ -226,7 +226,8 @@ TEST_F(FileCrawlerPlainDir, NoDuplicates) {
 
     NBayan::TFileCrawler fileCrawler(
         NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
-        blockChecksumStorage, {FileCrawlerPlainDir::tempdir1, FileCrawlerPlainDir::tempdir2}, {}, true, 1);
+        blockChecksumStorage, {FileCrawlerPlainDir::tempdir1, FileCrawlerPlainDir::tempdir2}, {}, std::nullopt, true,
+        1);
 
     fileCrawler.Run();
 
@@ -243,7 +244,8 @@ TEST_F(FileCrawlerPlainDir, SomeDuplicates) {
 
     NBayan::TFileCrawler fileCrawler(
         NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
-        blockChecksumStorage, {FileCrawlerPlainDir::tempdir1, FileCrawlerPlainDir::tempdir2}, {}, true, 1);
+        blockChecksumStorage, {FileCrawlerPlainDir::tempdir1, FileCrawlerPlainDir::tempdir2}, {}, std::nullopt, true,
+        1);
 
     fileCrawler.Run();
 
@@ -264,7 +266,7 @@ TEST_F(FileCrawlerPlainDir, ExcludedDir) {
 
     NBayan::TFileCrawler fileCrawler(
         NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
-        blockChecksumStorage, {FileCrawlerPlainDir::root}, {FileCrawlerPlainDir::tempdir2}, true, 1);
+        blockChecksumStorage, {FileCrawlerPlainDir::root}, {FileCrawlerPlainDir::tempdir2}, std::nullopt, true, 1);
 
     fileCrawler.Run();
 
@@ -272,6 +274,28 @@ TEST_F(FileCrawlerPlainDir, ExcludedDir) {
     ASSERT_EQ(actual.Groups.size(), 1);
 
     // f3 is missing as it belongs to excluded dir
+    using TFileGroup = NBayan::TBlockChecksumStorage::TFileGroup;
+    TFileGroup expectedGroup{FileCrawlerPlainDir::f1, FileCrawlerPlainDir::f2};
+    ASSERT_EQ(actual.Groups[0], expectedGroup);
+}
+
+TEST_F(FileCrawlerPlainDir, FileMask) {
+    CreateFileWithContent(FileCrawlerPlainDir::f1, "12345678");
+    CreateFileWithContent(FileCrawlerPlainDir::f2, "12345678");
+    CreateFileWithContent(FileCrawlerPlainDir::f3, "12345678");
+
+    auto blockChecksumStorage = std::make_shared<NBayan::TBlockChecksumStorage>();
+
+    NBayan::TFileCrawler fileCrawler(
+        NBayan::TFileBlockChecksumComputer(4, NBayan::TChecksumComputer(NBayan::EChecksumType::CRC32)),
+        blockChecksumStorage, {FileCrawlerPlainDir::root}, {}, std::make_optional<boost::regex>(".*\\.txt"), true, 1);
+
+    fileCrawler.Run();
+
+    auto actual = blockChecksumStorage->GetDuplicates();
+    ASSERT_EQ(actual.Groups.size(), 1);
+
+    // f3 is missing because it doesn't match files mask
     using TFileGroup = NBayan::TBlockChecksumStorage::TFileGroup;
     TFileGroup expectedGroup{FileCrawlerPlainDir::f1, FileCrawlerPlainDir::f2};
     ASSERT_EQ(actual.Groups[0], expectedGroup);

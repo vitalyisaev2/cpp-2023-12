@@ -1,12 +1,13 @@
 #pragma once
 
-#include <boost/filesystem/operations.hpp>
 #include <queue>
 #include <unordered_map>
 #include <vector>
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/directory.hpp>
+#include <boost/regex.hpp>
 #include <boost/log/trivial.hpp>
 
 #include "block_checksum_storage.hpp"
@@ -17,13 +18,17 @@ namespace NBayan {
     class TFileCrawler {
     public:
         TFileCrawler(TFileBlockChecksumComputer fileBlockChecksumComputer,
-                     const TBlockChecksumStorage::TPtr& blockChecksumStorage,
-                     std::vector<boost::filesystem::path> included, std::vector<boost::filesystem::path> excluded,
-                     bool recursive, std::size_t minFileSize)
+                     TBlockChecksumStorage::TPtr blockChecksumStorage,
+                     const std::vector<boost::filesystem::path>& included, 
+                     const std::vector<boost::filesystem::path>& excluded,
+                     std::optional<boost::regex> fileMask,
+                     bool recursive, 
+                     std::size_t minFileSize)
             : FileBlockChecksumComputer(std::move(fileBlockChecksumComputer))
-            , BlockChecksumStorage(blockChecksumStorage)
+            , BlockChecksumStorage(std::move(blockChecksumStorage))
             , Included(TransformPathesToAbsolute(included))
             , Excluded(TransformPathesToAbsolute(excluded))
+            , FileMask(std::move(fileMask))
             , Recursive(recursive)
             , MinFileSize(minFileSize) {
         }
@@ -63,6 +68,7 @@ namespace NBayan {
         TBlockChecksumStorage::TPtr BlockChecksumStorage;
         std::vector<boost::filesystem::path> Included;
         std::vector<boost::filesystem::path> Excluded;
+        std::optional<boost::regex> FileMask;
         bool Recursive;
         std::size_t MinFileSize;
 

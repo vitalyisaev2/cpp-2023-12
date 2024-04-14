@@ -1,5 +1,6 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/regex.hpp>
 
 #include "file_crawler.hpp"
 
@@ -49,6 +50,14 @@ namespace NBayan {
             auto exclStr = excl.string();
             auto res = std::mismatch(exclStr.begin(), exclStr.end(), pathStr.begin());
             if (res.first == exclStr.end()) {
+                return;
+            }
+        }
+
+        // omit files that doesn't match file mask
+        if (FileMask) {
+            boost::smatch what;
+            if (!boost::regex_match(path.path().string(), what, *FileMask)) {
                 return;
             }
         }
