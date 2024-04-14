@@ -66,8 +66,10 @@ namespace NBayan {
         MD5_Update(&c, start, size);
 
         if (zeroBytesTail) {
+            // allocate tail buffer that contains only zeroes
             std::vector<char> tail(zeroBytesTail);
-            MD5_Update(&c, tail.data(), size);
+            std::fill(tail.begin(), tail.end(), 0);
+            MD5_Update(&c, tail.data(), zeroBytesTail);
         }
 
         unsigned char dst[MD5_DIGEST_LENGTH];
