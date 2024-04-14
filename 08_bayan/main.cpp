@@ -91,7 +91,12 @@ int main(int argc, char** argv) {
         auto blockChecksumStorage = std::make_shared<NBayan::TBlockChecksumStorage>();
         const std::size_t blockSize = vm["block-size"].as<std::size_t>();
         const auto included = vm["include"].as<std::vector<std::string>>();
-        const auto excluded = vm["exclude"].as<std::vector<std::string>>();
+
+        std::vector<std::string> excluded;
+        if (vm.count("exclude")) {
+            excluded = vm["exclude"].as<std::vector<std::string>>();
+        }
+
         const auto checksumType = NBayan::EChecksumTypeFromString(vm["checksum-type"].as<std::string>());
         const auto recursive = vm["recursive"].as<bool>();
         const auto minFileSize = vm["min-file-size"].as<std::size_t>();
