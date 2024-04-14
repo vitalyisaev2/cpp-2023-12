@@ -8,6 +8,10 @@
 
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/program_options.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
 
 #include "block_checksum_storage.hpp"
 #include "checksum_computer.hpp"
@@ -53,7 +57,8 @@ int main(int argc, char** argv) {
         ("file-mask", po::value<std::string>(), "regexp to filter files, default - all files checked")
         ("block-size,S", po::value<std::size_t>()->default_value(1024), "size of block to compute checksum from the file's content, default - 1024 bytes")
         ("checksum-type", po::value<std::string>()->default_value(NBayan::EChecksumTypeToString(NBayan::EChecksumType::CRC32)), "hash algorithm, possible options:\n* CRC32\n* MD5")
-        ("recursive,R", po::bool_switch()->default_value(false), "enables recursive directory file search");
+        ("recursive,R", po::bool_switch()->default_value(false), "enables recursive directory file search")
+        ("log-level", po::value<int>()->default_value(2), "logging level from 0 (trace) to 5 (fatal), default 2 (info)");
     // clang-format on
 
     po::variables_map vm;
@@ -74,6 +79,8 @@ int main(int argc, char** argv) {
         std::cout << "You must provide directories to look for duplicates via --include/-I flag" << std::endl;
         return -1;
     }
+
+    boost::log::core::get()->set_filter(boost::log::trivial::severity >= vm["log-level"].as<int>());
 
     try {
         // prepare args

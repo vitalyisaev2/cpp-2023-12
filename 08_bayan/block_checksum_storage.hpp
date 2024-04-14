@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <set>
 #include <unordered_set>
 #include <memory>
