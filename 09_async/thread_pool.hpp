@@ -1,9 +1,9 @@
 #pragma once
 
+#include <functional>
 #include <mutex>
 #include <thread>
 #include <iostream>
-#include <thread>
 #include <queue>
 #include <condition_variable>
 
@@ -31,46 +31,56 @@ namespace real {
         std::mutex QueueMutex;
     };
 
-    template <class T>
-    struct TTask {
-        enum class EKind { Normal = 0, Terminate = 1 };
-
-        T Payload;
-        EKind Kind;
-    };
-
     class TThreadPool {
-        // void consumer() {
-        //     std::unique_lock<std::mutex> lck{conditionMutex};
+    private:
+        struct TTask {
+            enum class EKind { Execute = 0, Terminate = 1 };
 
-        //     while (!finished) {
-        //         condition.wait(lck);
+            EKind Kind;
+            std::function<void()> Execute;
+        };
 
-        //         auto task = std::move(queue.front());
-        //         queue.pop();
+        TThreadSafeQueue<TTask> queue;
+        std::vector<std::thread> threads;
 
-        //         std::cout << "Consumer - next data to proceed!\n";
-        //         std::cout << task << std::endl;
-        //     }
-
-        //     std::cout << "Consumer - finished!" << std::endl;
-        // }
+        auto makeThread(std::size_t threadId) {
+            return std::thread{[&queue = this->queue, threadId] {
+                std::cout << "Thread " << threadId << ": start" << std::endl;
+                while (true) {
+                    const auto task = queue.pop();
+                    switch (task.Kind) {
+                        case TTask::EKind::Execute:
+                            std::cout << "Thread " << threadId << ": execute" << std::endl;
+                            task.Execute();
+                            break;
+                        case TTask::EKind::Terminate:
+                            std::cout << "Thread " << threadId << ": terminate" << std::endl;
+                            return;
+                    }
+                }
+            }};
+        };
 
     public:
         TThreadPool() {
             for (std::size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
-                threads.push_back(std::thread(consumer));
+                threads.push_back(makeThread(i));
             }
         }
 
-        void publish(int value) {
-            std::lock_guard<std::mutex> guard{conditionMutex};
-            queue.push(value);
-            condition.notify_one();
+        ~TThreadPool() {
+            for (std::size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
+                queue.push(TTask{.Kind = TTask::EKind::Terminate});
+            }
+
+            for (std::size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
+                threads[i].join();
+            }
         }
 
-    private:
-        std::vector<std::jthread> threads;
+        void enqueue(std::function<void()> execution) {
+            queue.push(TTask{.Kind = TTask::EKind::Execute, .Execute = std::move(execution)});
+        }
     };
 
 } //namespace real
