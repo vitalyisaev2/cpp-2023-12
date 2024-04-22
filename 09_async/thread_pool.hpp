@@ -3,7 +3,6 @@
 #include <functional>
 #include <mutex>
 #include <thread>
-#include <iostream>
 #include <queue>
 #include <condition_variable>
 
@@ -46,25 +45,9 @@ namespace real {
         std::thread MakeThread(std::size_t threadId);
 
     public:
-        TThreadPool() {
-            for (std::size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
-                threads.push_back(MakeThread(i));
-            }
-        }
-
-        ~TThreadPool() {
-            for (std::size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
-                queue.push(TTask{.Kind = TTask::EKind::Terminate});
-            }
-
-            for (std::size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
-                threads[i].join();
-            }
-        }
-
-        void enqueue(std::function<void()> execution) {
-            queue.push(TTask{.Kind = TTask::EKind::Execute, .Execute = std::move(execution)});
-        }
+        TThreadPool();
+        ~TThreadPool();
+        void Enqueue(std::function<void()> execution);
     };
 
 } //namespace real
