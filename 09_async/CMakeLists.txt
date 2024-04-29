@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20) 
 project(async)
 
+# this is where the library developed in homework #07 is stored
+add_subdirectory(bulk)
+
 # add_library(async parser.cpp printer.cpp state.cpp)
 add_library(async async.cpp thread_pool.cpp)
 set_target_properties(async PROPERTIES
@@ -8,6 +11,7 @@ set_target_properties(async PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 target_include_directories(async PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(async PRIVATE bulk_lib)
 
 add_executable(async_example main.cpp)
 target_compile_options(async_example PRIVATE -Wall -Wextra -pedantic -Werror)
