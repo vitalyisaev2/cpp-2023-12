@@ -7,8 +7,8 @@
 using namespace std::chrono_literals;
 
 
-TEST(Parser, Test) {
-    real::TThreadPool tp;
+TEST(ThreadPool, Test) {
+    NUtils::TThreadPool tp;
 
     // std::this_thread::sleep_for(100ms);
 

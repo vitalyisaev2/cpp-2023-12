@@ -38,21 +38,6 @@ namespace NBulk {
         outfile.close();
     }
 
-    void TAccumulatingPrinter::HandleBlock(const std::vector<TCommand>& commands) {
-        // copy the whole block of commands to buffer
-        Buffer.push_back(commands);
-    }
-
-    void TAccumulatingPrinter::DumpResults(TDump& rcv) const {
-        for (const auto& cmdBlock : Buffer) {
-            std::vector<std::string> stringBlock;
-            for (const auto& cmd : cmdBlock) {
-                stringBlock.push_back(cmd.Value);
-            }
-            rcv.push_back(std::move(stringBlock));
-        }
-    }
-
     void TCompositePrinter::HandleBlock(const std::vector<TCommand>& commands) {
         for (const auto& printer : Printers) {
             printer->HandleBlock(commands);

@@ -8,6 +8,7 @@ set_target_properties(bulk_lib PROPERTIES
 )
 target_include_directories(bulk_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
+
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
 include(testing)
 run_tests(bulk_lib)

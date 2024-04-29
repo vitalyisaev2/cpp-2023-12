@@ -5,6 +5,28 @@
 #include "parser.hpp"
 #include "printer.hpp"
 
+// TAccumulatingPrinter keeps all comands in buffer. Useful for tests.
+class TAccumulatingPrinter: public NBulk::IPrinter {
+public:
+    using TDump = std::vector<std::vector<std::string>>;
+
+    void HandleBlock(const std::vector<NBulk::TCommand>& commands) override {
+        Buffer.push_back(commands);
+    }
+    void DumpResults(TDump& rcv) const {
+        for (const auto& cmdBlock : Buffer) {
+            std::vector<std::string> stringBlock;
+            for (const auto& cmd : cmdBlock) {
+                stringBlock.push_back(cmd.Value);
+            }
+            rcv.push_back(std::move(stringBlock));
+        }
+    };
+
+private:
+    std::vector<std::vector<NBulk::TCommand>> Buffer;
+};
+
 void FillParser(NBulk::TParser& parser, const std::string& input) {
     std::string target;
     std::stringstream ss(input);
@@ -17,7 +39,7 @@ void FillParser(NBulk::TParser& parser, const std::string& input) {
 }
 
 TEST(Parser, Test1) {
-    auto printer = std::make_shared<NBulk::TAccumulatingPrinter>();
+    auto printer = std::make_shared<TAccumulatingPrinter>();
     NBulk::TParser parser(3, printer);
 
     const std::string input =
@@ -29,19 +51,19 @@ cmd5)";
 
     FillParser(parser, input);
 
-    const NBulk::TAccumulatingPrinter::TDump expected = {
+    const TAccumulatingPrinter::TDump expected = {
         {"cmd1", "cmd2", "cmd3"},
         {"cmd4", "cmd5"},
     };
 
-    NBulk::TAccumulatingPrinter::TDump actual;
+    TAccumulatingPrinter::TDump actual;
     printer->DumpResults(actual);
 
     ASSERT_EQ(actual, expected);
 }
 
 TEST(Parser, Test2) {
-    auto printer = std::make_shared<NBulk::TAccumulatingPrinter>();
+    auto printer = std::make_shared<TAccumulatingPrinter>();
     NBulk::TParser parser(3, printer);
 
     const std::string input =
@@ -67,13 +89,13 @@ cmd11
 
     FillParser(parser, input);
 
-    const NBulk::TAccumulatingPrinter::TDump expected = {
+    const TAccumulatingPrinter::TDump expected = {
         {"cmd1", "cmd2"},
         {"cmd3", "cmd4"},
         {"cmd5", "cmd6", "cmd7", "cmd8", "cmd9"},
     };
 
-    NBulk::TAccumulatingPrinter::TDump actual;
+    TAccumulatingPrinter::TDump actual;
     printer->DumpResults(actual);
 
     ASSERT_EQ(actual, expected);

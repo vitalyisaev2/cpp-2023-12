@@ -24,17 +24,6 @@ namespace NBulk {
         void HandleBlock(const std::vector<TCommand>& commands) override;
     };
 
-    // TAccumulatingPrinter keeps all comands in buffer. Useful for tests.
-    class TAccumulatingPrinter: public IPrinter {
-    public:
-        using TDump = std::vector<std::vector<std::string>>;
-
-        void HandleBlock(const std::vector<TCommand>& commands) override;
-        void DumpResults(TDump& rcv) const;
-
-    private:
-        std::vector<std::vector<TCommand>> Buffer;
-    };
 
     class TCompositePrinter: public IPrinter {
     public:

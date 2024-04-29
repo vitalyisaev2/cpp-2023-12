@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.20) 
 project(async)
 
-# this is where the library developed in homework #07 is stored
+enable_testing()
 add_subdirectory(bulk)
+add_subdirectory(utils)
 
-# add_library(async parser.cpp printer.cpp state.cpp)
-add_library(async async.cpp thread_pool.cpp)
+add_library(async async.cpp)
 set_target_properties(async PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
@@ -27,5 +27,5 @@ install(TARGETS async_example DESTINATION bin)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
 # include(package)
 # add_package("async" "09")
-include(testing)
-run_tests(async)
+# include(testing)
+# run_tests(async)

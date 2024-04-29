@@ -6,7 +6,7 @@
 #include <queue>
 #include <condition_variable>
 
-namespace real {
+namespace NUtils {
     template <class T>
     class TThreadSafeQueue {
     public:
@@ -50,4 +50,4 @@ namespace real {
         void Enqueue(std::function<void()> execution);
     };
 
-} //namespace real
+} //namespace NUtils

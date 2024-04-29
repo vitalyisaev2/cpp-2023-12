@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace real {
+namespace NUtils {
 
     TThreadPool::TThreadPool() {
         for (std::size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
@@ -41,4 +41,4 @@ namespace real {
             }
         }};
     };
-} //namespace real
+} //namespace NUtils
