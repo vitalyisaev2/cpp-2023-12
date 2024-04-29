@@ -17,20 +17,27 @@ namespace NBulk {
     // TStdOutPrinter just prints output into stdout.
     class TStdOutPrinter: public IPrinter {
     public:
+        TStdOutPrinter() = delete;
+        TStdOutPrinter(NUtils::TThreadPool::TPtr& threadPool)
+            : ThreadPool(threadPool){};
+
         void HandleBlock(const TCommands& commands) override;
-    
+
     private:
-        NUtils::TThreadPool ThreadPool;
+        NUtils::TThreadPool::TPtr ThreadPool;
     };
 
     class TFilePrinter: public IPrinter {
     public:
+        TFilePrinter() = delete;
+        TFilePrinter(NUtils::TThreadPool::TPtr& threadPool)
+            : ThreadPool(threadPool){};
+
         void HandleBlock(const TCommands& commands) override;
 
     private:
-        NUtils::TThreadPool ThreadPool;
+        NUtils::TThreadPool::TPtr ThreadPool;
     };
-
 
     class TCompositePrinter: public IPrinter {
     public:
@@ -44,21 +51,5 @@ namespace NBulk {
         std::vector<IPrinter::TPtr> Printers;
     };
 
-    template <class P, class... Ps>
-    void makeCompositePrinterStep(std::vector<IPrinter::TPtr>& printers) {
-        printers.emplace_back(std::make_shared<P>());
-        if constexpr (sizeof...(Ps) > 0) {
-            return makeCompositePrinterStep<Ps...>(printers);
-        }
-    }
-
-    template <class... Ps>
-    IPrinter::TPtr MakeCompositePrinter() {
-        std::vector<IPrinter::TPtr> printers;
-        makeCompositePrinterStep<Ps...>(printers);
-        return std::make_shared<TCompositePrinter>(printers);
-    }
-
-    template <class... Ps>
-    IPrinter::TPtr MakeCompositePrinter();
+    IPrinter::TPtr MakeCompositePrinter(std::vector<IPrinter::TPtr>&& printers);
 } //namespace NBulk

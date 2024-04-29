@@ -38,7 +38,7 @@ void FillParser(NBulk::TParser& parser, const std::string& input) {
     parser.Terminate();
 }
 
-TEST(Parser, Test1) {
+TEST(Parser, FakePrinter1) {
     auto printer = std::make_shared<TAccumulatingPrinter>();
     NBulk::TParser parser(3, printer);
 
@@ -62,7 +62,7 @@ cmd5)";
     ASSERT_EQ(actual, expected);
 }
 
-TEST(Parser, Test2) {
+TEST(Parser, FakePrinter2) {
     auto printer = std::make_shared<TAccumulatingPrinter>();
     NBulk::TParser parser(3, printer);
 
@@ -99,4 +99,26 @@ cmd11
     printer->DumpResults(actual);
 
     ASSERT_EQ(actual, expected);
+}
+
+TEST(Parser, RealPrinter) {
+    auto threadPoolFile = NUtils::MakeThreadPool(2);
+    auto threadPoolStdout = NUtils::MakeThreadPool(1);
+
+    std::vector<NBulk::IPrinter::TPtr> lowLevelPrinters{
+        std::make_shared<NBulk::TFilePrinter>(threadPoolFile),
+        std::make_shared<NBulk::TStdOutPrinter>(threadPoolStdout),
+    };
+
+    NBulk::IPrinter::TPtr printer = std::make_shared<NBulk::TCompositePrinter>(std::move(lowLevelPrinters));
+    NBulk::TParser parser(3, printer);
+
+    const std::string input =
+        R"(cmd1
+    cmd2
+    cmd3
+    cmd4
+    cmd5)";
+
+    FillParser(parser, input);
 }

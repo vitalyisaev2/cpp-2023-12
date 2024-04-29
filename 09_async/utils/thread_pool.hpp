@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <queue>
@@ -32,6 +34,8 @@ namespace NUtils {
 
     class TThreadPool {
     public:
+        using TPtr = std::shared_ptr<TThreadPool>;
+
         using TThreadId = std::size_t;
 
     private:
@@ -42,15 +46,19 @@ namespace NUtils {
             std::function<void(TThreadId)> Execute;
         };
 
-        TThreadSafeQueue<TTask> queue;
-        std::vector<std::thread> threads;
-
         std::thread MakeThread(std::size_t threadId);
 
     public:
-        TThreadPool();
-        ~TThreadPool();
+        explicit TThreadPool(std::size_t capacity);
         void Enqueue(std::function<void(TThreadId)> execution);
+
+        ~TThreadPool();
+
+    private:
+        std::size_t Capacity;
+        TThreadSafeQueue<TTask> Queue;
+        std::vector<std::thread> Threads;
     };
 
+    TThreadPool::TPtr MakeThreadPool(std::size_t capacity);
 } //namespace NUtils

@@ -5,7 +5,7 @@
 using namespace std::chrono_literals;
 
 TEST(ThreadPool, Test) {
-    NUtils::TThreadPool tp;
+    NUtils::TThreadPool tp(2);
 
     tp.Enqueue([](NUtils::TThreadPool::TThreadId threadId) {
         std::cout << "threadId = " << threadId << ", " << "task1" << std::endl;
