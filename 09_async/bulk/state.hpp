@@ -31,7 +31,7 @@ namespace NBulk {
     private:
         std::size_t BlockSize;
         IPrinter::TPtr Printer;
-        std::vector<TCommand> Commands;
+        std::vector<TCommand> CommandBuffer;
     };
 
     class TDynamicBlock: public IState {
@@ -47,6 +47,6 @@ namespace NBulk {
         std::size_t BlockSize;
         std::size_t NestingLevel;
         IPrinter::TPtr Printer;
-        std::vector<TCommand> Commands;
+        std::vector<TCommand> CommandBuffer;
     };
 } //namespace NBulk

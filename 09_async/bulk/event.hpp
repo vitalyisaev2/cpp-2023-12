@@ -3,6 +3,8 @@
 #include <string>
 #include <chrono>
 #include <variant>
+#include <vector>
+#include <memory>
 
 namespace NBulk {
     struct TCommand {
@@ -16,6 +18,8 @@ namespace NBulk {
         std::string Value;
         std::chrono::time_point<std::chrono::system_clock> RegistrationTime;
     };
+
+    using TCommands = std::shared_ptr<std::vector<TCommand>>;
 
     struct TBlockStart {};
 

@@ -10,8 +10,8 @@ class TAccumulatingPrinter: public NBulk::IPrinter {
 public:
     using TDump = std::vector<std::vector<std::string>>;
 
-    void HandleBlock(const std::vector<NBulk::TCommand>& commands) override {
-        Buffer.push_back(commands);
+    void HandleBlock(const NBulk::TCommands& commands) override {
+        Buffer.push_back(*commands);
     }
     void DumpResults(TDump& rcv) const {
         for (const auto& cmdBlock : Buffer) {

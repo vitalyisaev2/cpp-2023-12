@@ -1,6 +1,8 @@
 #include "state.hpp"
+#include "event.hpp"
 
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <variant>
 
@@ -23,12 +25,13 @@ namespace NBulk {
     IState::TPtr TNormalBlock::HandleEvent(const TEvent& ev) {
         if (std::holds_alternative<TCommand>(ev)) {
             // accumulate commands in buffer
-            Commands.emplace_back(std::move(std::get<TCommand>(ev).Value));
+            CommandBuffer.emplace_back(std::move(std::get<TCommand>(ev).Value));
 
             // if enough data collected, dump it
-            if (Commands.size() == BlockSize) {
-                Printer->HandleBlock(Commands);
-                Commands.erase(Commands.begin(), Commands.end());
+            if (CommandBuffer.size() == BlockSize) {
+                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
+                Printer->HandleBlock(std::move(commands));
+                // CommandBuffer.erase(CommandBuffer.begin(), CommandBuffer.end());
             }
 
             // no state change
@@ -39,9 +42,10 @@ namespace NBulk {
             // start new dynamical block
 
             // print accumulated data if any
-            if (Commands.size()) {
-                Printer->HandleBlock(Commands);
-                Commands.erase(Commands.begin(), Commands.end());
+            if (CommandBuffer.size()) {
+                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
+                Printer->HandleBlock(std::move(commands));
+                // CommandBuffer.erase(CommandBuffer.begin(), CommandBuffer.end());
             }
 
             // switch state
@@ -54,9 +58,10 @@ namespace NBulk {
 
         if (std::holds_alternative<TEndOfFile>(ev)) {
             // print accumulated data if any
-            if (Commands.size()) {
-                Printer->HandleBlock(Commands);
-                Commands.erase(Commands.begin(), Commands.end());
+            if (CommandBuffer.size()) {
+                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
+                Printer->HandleBlock(std::move(commands));
+                // CommandBuffer.erase(CommandBuffer.begin(), CommandBuffer.end());
             }
 
             // no state change
@@ -69,7 +74,7 @@ namespace NBulk {
     IState::TPtr TDynamicBlock::HandleEvent(const TEvent& ev) {
         if (std::holds_alternative<TCommand>(ev)) {
             // just accumulate commands in buffer
-            Commands.emplace_back(std::move(std::get<TCommand>(ev).Value));
+            CommandBuffer.emplace_back(std::move(std::get<TCommand>(ev).Value));
 
             // no state change
             return nullptr;
@@ -89,8 +94,9 @@ namespace NBulk {
 
             if (NestingLevel == 0) {
                 // dump all data
-                Printer->HandleBlock(Commands);
-                Commands.erase(Commands.begin(), Commands.end());
+                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
+                Printer->HandleBlock(std::move(commands));
+                // CommandBuffer.erase(CommandBuffer.begin(), CommandBuffer.end());
 
                 return std::make_unique<TNormalBlock>(BlockSize, Printer);
             }

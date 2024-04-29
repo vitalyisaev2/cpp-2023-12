@@ -31,12 +31,15 @@ namespace NUtils {
     };
 
     class TThreadPool {
+    public:
+        using TThreadId = std::size_t;
+
     private:
         struct TTask {
             enum class EKind { Execute = 0, Terminate = 1 };
 
             EKind Kind;
-            std::function<void()> Execute;
+            std::function<void(TThreadId)> Execute;
         };
 
         TThreadSafeQueue<TTask> queue;
@@ -47,7 +50,7 @@ namespace NUtils {
     public:
         TThreadPool();
         ~TThreadPool();
-        void Enqueue(std::function<void()> execution);
+        void Enqueue(std::function<void(TThreadId)> execution);
     };
 
 } //namespace NUtils

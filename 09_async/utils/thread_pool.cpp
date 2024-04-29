@@ -1,7 +1,5 @@
 #include "thread_pool.hpp"
 
-#include <iostream>
-
 namespace NUtils {
 
     TThreadPool::TThreadPool() {
@@ -20,22 +18,19 @@ namespace NUtils {
         }
     }
 
-    void TThreadPool::Enqueue(std::function<void()> execution) {
+    void TThreadPool::Enqueue(std::function<void(TThreadPool::TThreadId)> execution) {
         queue.push(TTask{.Kind = TTask::EKind::Execute, .Execute = std::move(execution)});
     }
 
-    std::thread TThreadPool::MakeThread(std::size_t threadId) {
+    std::thread TThreadPool::MakeThread(TThreadPool::TThreadId threadId) {
         return std::thread{[&queue = this->queue, threadId] {
-            std::cout << "Thread " << threadId << ": start" << std::endl;
             while (true) {
                 const auto task = queue.pop();
                 switch (task.Kind) {
                     case TTask::EKind::Execute:
-                        std::cout << "Thread " << threadId << ": execute" << std::endl;
-                        task.Execute();
+                        task.Execute(threadId);
                         break;
                     case TTask::EKind::Terminate:
-                        std::cout << "Thread " << threadId << ": terminate" << std::endl;
                         return;
                 }
             }

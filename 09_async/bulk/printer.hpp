@@ -4,24 +4,31 @@
 #include <vector>
 
 #include "event.hpp"
+#include "../utils/thread_pool.hpp"
 
 namespace NBulk {
     class IPrinter {
     public:
         using TPtr = std::shared_ptr<IPrinter>;
-        virtual void HandleBlock(const std::vector<TCommand>& commands) = 0;
+        virtual void HandleBlock(const TCommands& commands) = 0;
         virtual ~IPrinter(){};
     };
 
     // TStdOutPrinter just prints output into stdout.
     class TStdOutPrinter: public IPrinter {
     public:
-        void HandleBlock(const std::vector<TCommand>& commands) override;
+        void HandleBlock(const TCommands& commands) override;
+    
+    private:
+        NUtils::TThreadPool ThreadPool;
     };
 
     class TFilePrinter: public IPrinter {
     public:
-        void HandleBlock(const std::vector<TCommand>& commands) override;
+        void HandleBlock(const TCommands& commands) override;
+
+    private:
+        NUtils::TThreadPool ThreadPool;
     };
 
 
@@ -31,7 +38,7 @@ namespace NBulk {
             : Printers(std::move(printers)) {
         }
 
-        void HandleBlock(const std::vector<TCommand>& commands) override;
+        void HandleBlock(const TCommands& commands) override;
 
     private:
         std::vector<IPrinter::TPtr> Printers;

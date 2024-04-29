@@ -4,44 +4,46 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <filesystem>
 
 namespace NBulk {
-    void TStdOutPrinter::HandleBlock(const std::vector<TCommand>& commands) {
-        std::cout << "bulk: ";
+    void TStdOutPrinter::HandleBlock(const TCommands& commands) {
+        ThreadPool.Enqueue([&commands = commands](NUtils::TThreadPool::TThreadId _) {
+            std::cout << "bulk: ";
 
-        for (std::size_t i = 0; i < commands.size(); i++) {
-            std::cout << commands[i].Value;
+            for (std::size_t i = 0; i < commands->size(); i++) {
+                std::cout << commands->at(i).Value;
 
-            if (i != commands.size() - 1) {
-                std::cout << ", ";
+                if (i != commands->size() - 1) {
+                    std::cout << ", ";
+                }
             }
-        }
 
-        std::cout << std::endl;
+            std::cout << std::endl;
+        });
     }
 
-    void TFilePrinter::HandleBlock(const std::vector<TCommand>& commands) {
-        const auto& startTime = commands.front().RegistrationTime;
-        auto secondsUTC = std::chrono::duration_cast<std::chrono::seconds>(startTime.time_since_epoch()).count();
+    void TFilePrinter::HandleBlock(const TCommands& commands) {
+        ThreadPool.Enqueue([&commands = commands](NUtils::TThreadPool::TThreadId threadId) {
+            const auto& startTime = commands->front().RegistrationTime;
+            auto secondsUTC = std::chrono::duration_cast<std::chrono::seconds>(startTime.time_since_epoch()).count();
 
-        auto filename =
-            std::filesystem::current_path() / std::filesystem::path("bulk" + std::to_string(secondsUTC) + ".log");
+            auto filename_local =
+                std::filesystem::path("bulk" + std::to_string(secondsUTC) + "_" + std::to_string(threadId) + ".log");
+            auto filename_abs = std::filesystem::current_path() / filename_local;
 
-        std::ofstream outfile(filename);
+            std::ofstream outfile(filename_abs);
+            for (const auto& cmd : *commands) {
+                outfile << cmd.Value << std::endl;
+            }
 
-        for (const auto& cmd : commands) {
-            outfile << cmd.Value << std::endl;
-        }
-
-        outfile.close();
+            outfile.close();
+        });
     }
 
-    void TCompositePrinter::HandleBlock(const std::vector<TCommand>& commands) {
+    void TCompositePrinter::HandleBlock(const TCommands& commands) {
         for (const auto& printer : Printers) {
             printer->HandleBlock(commands);
         }
     }
-
 } //namespace NBulk
