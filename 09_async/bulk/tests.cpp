@@ -32,7 +32,7 @@ void FillParser(NBulk::TParser& parser, const std::string& input) {
     std::stringstream ss(input);
 
     while (std::getline(ss, target)) {
-        parser.HandleLine(target);
+        parser.HandleLine(std::move(target));
     }
 
     parser.Terminate();
@@ -110,8 +110,7 @@ TEST(Parser, RealPrinter) {
         std::make_shared<NBulk::TStdOutPrinter>(threadPoolStdout),
     };
 
-    NBulk::IPrinter::TPtr printer = std::make_shared<NBulk::TCompositePrinter>(std::move(lowLevelPrinters));
-    NBulk::TParser parser(3, printer);
+    NBulk::TParser parser(3, NBulk::MakeCompositePrinter(std::move(lowLevelPrinters)));
 
     const std::string input =
         R"(cmd1

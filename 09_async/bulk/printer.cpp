@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <filesystem>
+#include <memory>
 
 namespace NBulk {
     void TStdOutPrinter::HandleBlock(const TCommands& commands) {
@@ -45,5 +46,9 @@ namespace NBulk {
         for (const auto& printer : Printers) {
             printer->HandleBlock(commands);
         }
+    }
+
+    IPrinter::TPtr MakeCompositePrinter(std::vector<IPrinter::TPtr>&& printers) {
+        return std::make_shared<TCompositePrinter>(printers);
     }
 } //namespace NBulk

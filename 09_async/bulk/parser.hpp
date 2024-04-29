@@ -8,14 +8,18 @@
 namespace NBulk {
     class TParser {
     public:
-        explicit TParser(std::size_t blockSize, IPrinter::TPtr printer) noexcept
+        using TPtr = std::shared_ptr<TParser>;
+
+        TParser(std::size_t blockSize, IPrinter::TPtr printer) noexcept
             : State(std::make_unique<TNormalBlock>(TNormalBlock(blockSize, printer))) {
         }
 
-        void HandleLine(const std::string& line);
+        void HandleLine(std::string&& line);
         void Terminate();
 
     private:
         IState::TPtr State;
     };
+
+    TParser::TPtr MakeParser(std::size_t blockSize, IPrinter::TPtr&& printer);
 } //namespace NBulk

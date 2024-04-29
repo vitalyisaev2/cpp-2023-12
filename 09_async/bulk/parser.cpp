@@ -1,9 +1,10 @@
 #include "parser.hpp"
 
+#include <memory>
 #include <stdexcept>
 
 namespace NBulk {
-    void TParser::HandleLine(const std::string& line) {
+    void TParser::HandleLine(std::string&& line) {
         IState::TPtr newState = nullptr;
 
         if (line == "{") {
@@ -25,4 +26,7 @@ namespace NBulk {
         State->HandleEvent(TEndOfFile{});
     }
 
+    TParser::TPtr MakeParser(std::size_t blockSize, IPrinter::TPtr&& printer) {
+        return std::make_shared<TParser>(blockSize, std::move(printer));
+    }
 } //namespace NBulk
