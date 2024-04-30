@@ -48,10 +48,9 @@ public:
         return out;
     }
 
-    NBulk::TParser::TPtr& GetParser(const TParserId parserId) {
+    void HandleLine(const TParserId parserId, std::string&& line) {
         std::shared_lock<std::shared_mutex> lock(StorageMutex);
-
-        return Storage[parserId];
+        Storage[parserId]->HandleLine(std::move(line));
     }
 
     void RemoveParser(const TParserId parserId) {
@@ -59,6 +58,7 @@ public:
 
         auto iter = Storage.find(parserId);
         if (iter != Storage.end()) {
+            iter->second->Terminate();
             Storage.erase(iter);
         }
     }
@@ -85,9 +85,8 @@ namespace async {
     }
 
     void receive(handle_t handle, const char* data, std::size_t size) {
-        TParserController::GetInstance()
-            ->GetParser(reinterpret_cast<TParserController::TParserId>(handle))
-            ->HandleLine(std::string(data, size));
+        TParserController::GetInstance()->HandleLine(reinterpret_cast<TParserController::TParserId>(handle),
+                                                     std::string(data, size));
     }
 
     void disconnect(handle_t handle) {
