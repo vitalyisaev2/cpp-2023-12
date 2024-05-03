@@ -5,7 +5,18 @@
 #include "parser.hpp"
 #include "printer.hpp"
 
-// TAccumulatingPrinter keeps all comands in buffer. Useful for tests.
+void FillParser(NBulk::TParser& parser, const std::string& input) {
+    std::string target;
+    std::stringstream ss(input);
+
+    while (std::getline(ss, target)) {
+        parser.HandleLine(std::move(target));
+    }
+
+    parser.Terminate();
+}
+
+// TAccumulatingPrinter keeps all commands in buffer. Useful for tests.
 class TAccumulatingPrinter: public NBulk::IPrinter {
 public:
     using TDump = std::vector<std::vector<std::string>>;
@@ -30,17 +41,6 @@ public:
 private:
     std::vector<std::vector<NBulk::TCommand>> Buffer;
 };
-
-void FillParser(NBulk::TParser& parser, const std::string& input) {
-    std::string target;
-    std::stringstream ss(input);
-
-    while (std::getline(ss, target)) {
-        parser.HandleLine(std::move(target));
-    }
-
-    parser.Terminate();
-}
 
 TEST(Parser, FakePrinter1) {
     auto printer = std::make_shared<TAccumulatingPrinter>();

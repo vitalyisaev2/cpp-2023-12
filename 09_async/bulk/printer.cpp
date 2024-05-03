@@ -50,7 +50,8 @@ namespace NBulk {
     }
 
     std::future<IPrinter::TResult> TCompositePrinter::HandleBlock(const TCommands& commands) {
-        std::vector<std::future<TResult>> futures(Printers.size());
+        std::vector<std::future<TResult>> futures;
+        futures.reserve(Printers.size());
 
         for (const auto& printer : Printers) {
             futures.emplace_back(printer->HandleBlock(commands));
@@ -71,6 +72,7 @@ namespace NBulk {
         // Copy last cached result to the outgoing future;
         std::promise<IPrinter::TResult> promise;
         promise.set_value(result);
+
         return promise.get_future();
     }
 
