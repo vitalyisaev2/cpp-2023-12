@@ -5,13 +5,15 @@ enable_testing()
 add_subdirectory(bulk)
 add_subdirectory(utils)
 
-add_library(async async.cpp)
+add_library(async SHARED async.cpp async.hpp)
 set_target_properties(async PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
 )
-target_include_directories(async PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(async PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(async PRIVATE bulk_lib)
+install(TARGETS async DESTINATION ${LIBRARY_INSTALL_DIR})
+install(FILES "${PROJECT_SOURCE_DIR}/async.hpp" DESTINATION include ${CMAKE_INSTALL_INCLUDEDIR})
 
 add_executable(async_example main.cpp)
 target_compile_options(async_example PRIVATE -Wall -Wextra -pedantic -Werror)

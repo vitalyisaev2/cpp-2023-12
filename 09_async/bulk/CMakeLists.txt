@@ -9,6 +9,7 @@ set_target_properties(bulk_lib PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
 )
+target_compile_options(bulk_lib PRIVATE -Wall -Wextra -pedantic -Werror -fPIC)
 target_include_directories(bulk_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" utils_lib)
 target_link_libraries(bulk_lib utils_lib)
 

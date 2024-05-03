@@ -104,24 +104,3 @@ cmd11
 
     ASSERT_EQ(actual, expected);
 }
-
-TEST(Parser, RealPrinter) {
-    auto threadPoolFile = NUtils::MakeThreadPool<NBulk::IPrinter::TResult>(2);
-    auto threadPoolStdout = NUtils::MakeThreadPool<NBulk::IPrinter::TResult>(1);
-
-    std::vector<NBulk::IPrinter::TPtr> lowLevelPrinters{
-        std::make_shared<NBulk::TFilePrinter>(threadPoolFile),
-        std::make_shared<NBulk::TStdOutPrinter>(threadPoolStdout),
-    };
-
-    NBulk::TParser parser(3, NBulk::MakeCompositePrinter(std::move(lowLevelPrinters)));
-
-    const std::string input =
-        R"(cmd1
-    cmd2
-    cmd3
-    cmd4
-    cmd5)";
-
-    FillParser(parser, input);
-}

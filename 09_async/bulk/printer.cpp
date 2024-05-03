@@ -10,7 +10,8 @@
 namespace NBulk {
     std::future<IPrinter::TResult> TStdOutPrinter::HandleBlock(const TCommands& commands) {
         return ThreadPool->Enqueue(
-            [commands = commands](NUtils::TThreadPool<IPrinter::TResult>::TThreadId _) -> TResult {
+            [commands =
+                 commands]([[maybe_unused]] NUtils::TThreadPool<IPrinter::TResult>::TThreadId threadId) -> TResult {
                 std::cout << "bulk: ";
 
                 for (std::size_t i = 0; i < commands->size(); i++) {
