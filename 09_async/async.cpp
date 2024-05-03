@@ -16,7 +16,8 @@ public:
     using TParserId = std::size_t;
 
 private:
-    TParserController(NUtils::TThreadPool::TPtr&& threadPoolFile, NUtils::TThreadPool::TPtr&& threadPoolStdOut)
+    TParserController(NUtils::TThreadPool<void>::TPtr&& threadPoolFile,
+                      NUtils::TThreadPool<void>::TPtr&& threadPoolStdOut)
         : File(std::move(threadPoolFile))
         , StdOut(std::move(threadPoolStdOut))
         , ParserCounter(0) {
@@ -24,8 +25,8 @@ private:
 
     static std::atomic<TParserController*> Instance;
     static std::mutex InstanceMutex;
-    NUtils::TThreadPool::TPtr File;
-    NUtils::TThreadPool::TPtr StdOut;
+    NUtils::TThreadPool<void>::TPtr File;
+    NUtils::TThreadPool<void>::TPtr StdOut;
 
     std::unordered_map<TParserId, NBulk::TParser::TPtr> Storage;
     TParserId ParserCounter;
@@ -71,7 +72,7 @@ TParserController* TParserController::GetInstance() {
     if (Instance == nullptr) {
         std::lock_guard<std::mutex> lock(InstanceMutex);
         if (Instance == nullptr) {
-            Instance = new TParserController(NUtils::MakeThreadPool(2), NUtils::MakeThreadPool(1));
+            Instance = new TParserController(NUtils::MakeThreadPool<void>(2), NUtils::MakeThreadPool<void>(1));
         }
     }
 

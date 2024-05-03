@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -32,6 +33,7 @@ namespace NUtils {
         std::mutex QueueMutex;
     };
 
+    template <class T>
     class TThreadPool {
     public:
         using TPtr = std::shared_ptr<TThreadPool>;
@@ -43,16 +45,53 @@ namespace NUtils {
             enum class EKind { Execute = 0, Terminate = 1 };
 
             EKind Kind;
-            std::function<void(TThreadId)> Execute;
+
+            std::function<T(TThreadId)> Execute;
+            std::promise<T> Promise;
         };
 
-        std::thread MakeThread(std::size_t threadId);
+        std::thread MakeThread(std::size_t threadId) {
+            return std::thread{[&queue = this->Queue, threadId] {
+                while (true) {
+                    const auto task = queue.pop();
+                    switch (task.Kind) {
+                        case TTask::EKind::Execute:
+                            task.Promise.set_value(task.Execute(threadId));
+                            break;
+                        case TTask::EKind::Terminate:
+                            return;
+                    }
+                }
+            }};
+        }
 
     public:
-        explicit TThreadPool(std::size_t capacity);
-        void Enqueue(std::function<void(TThreadId)> execution);
+        TThreadPool() = delete;
 
-        ~TThreadPool();
+        explicit TThreadPool(std::size_t capacity)
+            : Capacity(capacity) {
+            for (std::size_t i = 0; i < Capacity; i++) {
+                Threads.push_back(MakeThread(i));
+            }
+        };
+
+        std::future<T> Enqueue(std::function<T(TThreadId)> execution) {
+            std::promise<T> promise;
+            auto future = promise.get_future();
+            Queue.push(
+                TTask{.Kind = TTask::EKind::Execute, .Execute = std::move(execution), .Promise = std::move(promise)});
+            return future;
+        }
+
+        ~TThreadPool() {
+            for (std::size_t i = 0; i < Capacity; i++) {
+                Queue.push(TTask{.Kind = TTask::EKind::Terminate});
+            }
+
+            for (std::size_t i = 0; i < Capacity; i++) {
+                Threads[i].join();
+            }
+        }
 
     private:
         std::size_t Capacity;
@@ -60,5 +99,8 @@ namespace NUtils {
         std::vector<std::thread> Threads;
     };
 
-    TThreadPool::TPtr MakeThreadPool(std::size_t capacity);
+    template <class T>
+    typename TThreadPool<T>::TPtr MakeThreadPool(std::size_t capacity) {
+        return std::make_shared<TThreadPool<T>>(capacity);
+    }
 } //namespace NUtils

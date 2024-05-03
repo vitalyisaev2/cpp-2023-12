@@ -102,8 +102,8 @@ cmd11
 }
 
 TEST(Parser, RealPrinter) {
-    auto threadPoolFile = NUtils::MakeThreadPool(2);
-    auto threadPoolStdout = NUtils::MakeThreadPool(1);
+    auto threadPoolFile = NUtils::MakeThreadPool<void>(2);
+    auto threadPoolStdout = NUtils::MakeThreadPool<void>(1);
 
     std::vector<NBulk::IPrinter::TPtr> lowLevelPrinters{
         std::make_shared<NBulk::TFilePrinter>(threadPoolFile),

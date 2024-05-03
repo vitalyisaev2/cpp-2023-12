@@ -10,7 +10,7 @@ namespace NBulk {
     class IPrinter {
     public:
         using TPtr = std::shared_ptr<IPrinter>;
-        virtual void HandleBlock(const TCommands& commands) = 0;
+        virtual std::future<void> HandleBlock(const TCommands& commands) = 0;
         virtual ~IPrinter(){};
     };
 
@@ -18,25 +18,25 @@ namespace NBulk {
     class TStdOutPrinter: public IPrinter {
     public:
         TStdOutPrinter() = delete;
-        TStdOutPrinter(NUtils::TThreadPool::TPtr& threadPool)
+        TStdOutPrinter(NUtils::TThreadPool<void>::TPtr& threadPool)
             : ThreadPool(threadPool){};
 
-        void HandleBlock(const TCommands& commands) override;
+        std::future<void> HandleBlock(const TCommands& commands) override;
 
     private:
-        NUtils::TThreadPool::TPtr ThreadPool;
+        NUtils::TThreadPool<void>::TPtr ThreadPool;
     };
 
     class TFilePrinter: public IPrinter {
     public:
         TFilePrinter() = delete;
-        TFilePrinter(NUtils::TThreadPool::TPtr& threadPool)
+        TFilePrinter(NUtils::TThreadPool<void>::TPtr& threadPool)
             : ThreadPool(threadPool){};
 
-        void HandleBlock(const TCommands& commands) override;
+        std::future<void> HandleBlock(const TCommands& commands) override;
 
     private:
-        NUtils::TThreadPool::TPtr ThreadPool;
+        NUtils::TThreadPool<void>::TPtr ThreadPool;
     };
 
     class TCompositePrinter: public IPrinter {
@@ -45,7 +45,7 @@ namespace NBulk {
             : Printers(std::move(printers)) {
         }
 
-        void HandleBlock(const TCommands& commands) override;
+        std::future<void> HandleBlock(const TCommands& commands) override;
 
     private:
         std::vector<IPrinter::TPtr> Printers;

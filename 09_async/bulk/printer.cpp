@@ -9,7 +9,7 @@
 
 namespace NBulk {
     void TStdOutPrinter::HandleBlock(const TCommands& commands) {
-        ThreadPool->Enqueue([commands = commands](NUtils::TThreadPool::TThreadId _) {
+        ThreadPool->Enqueue([commands = commands](NUtils::TThreadPool<void>::TThreadId _) {
             std::cout << "bulk: ";
 
             for (std::size_t i = 0; i < commands->size(); i++) {
@@ -25,7 +25,7 @@ namespace NBulk {
     }
 
     void TFilePrinter::HandleBlock(const TCommands& commands) {
-        ThreadPool->Enqueue([commands = commands](NUtils::TThreadPool::TThreadId threadId) {
+        ThreadPool->Enqueue([commands = commands](NUtils::TThreadPool<void>::TThreadId threadId) {
             const auto& startTime = commands->front().RegistrationTime;
             auto secondsUTC = std::chrono::duration_cast<std::chrono::seconds>(startTime.time_since_epoch()).count();
 
