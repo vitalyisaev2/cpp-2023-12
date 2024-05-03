@@ -13,7 +13,7 @@ public:
     std::future<NBulk::IPrinter::TResult> HandleBlock(const NBulk::TCommands& commands) override {
         Buffer.push_back(*commands);
         std::promise<NBulk::IPrinter::TResult> promise;
-        promise.set_value({});
+        promise.set_value(NBulk::IPrinter::TResult{.Ok = true, .Message = ""});
         return promise.get_future();
     }
 

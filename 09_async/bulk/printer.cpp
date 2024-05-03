@@ -23,7 +23,7 @@ namespace NBulk {
 
                 std::cout << std::endl;
 
-                return TResult{.Ok = true};
+                return TResult{.Ok = true, .Message = ""};
             });
     }
 
@@ -37,8 +37,6 @@ namespace NBulk {
                 std::filesystem::path("bulk" + std::to_string(secondsUTC) + "_" + std::to_string(threadId) + ".log");
             auto filenameAbs = std::filesystem::current_path() / filenameLocal;
 
-            std::cout << "Trying to open " << filenameAbs << std::endl;
-
             std::ofstream outfile(filenameAbs);
             for (const auto& cmd : *commands) {
                 outfile << cmd.Value << std::endl;
@@ -47,7 +45,7 @@ namespace NBulk {
             outfile.close();
 
             // TODO: Check error codes from IO operations
-            return TResult{.Ok = true};
+            return TResult{.Ok = true, .Message = ""};
         });
     }
 
@@ -64,6 +62,7 @@ namespace NBulk {
         do {
             result = futures[i].get();
             if (!result.Ok) {
+                // fail fast
                 break;
             }
             i++;

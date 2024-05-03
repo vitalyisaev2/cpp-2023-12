@@ -30,8 +30,9 @@ namespace NBulk {
             // if enough data collected, dump it
             if (CommandBuffer.size() == BlockSize) {
                 auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
-                Printer->HandleBlock(std::move(commands));
-                // CommandBuffer.erase(CommandBuffer.begin(), CommandBuffer.end());
+                if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
+                    throw result.Message;
+                }
             }
 
             // no state change
@@ -44,8 +45,9 @@ namespace NBulk {
             // print accumulated data if any
             if (CommandBuffer.size()) {
                 auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
-                Printer->HandleBlock(std::move(commands));
-                // CommandBuffer.erase(CommandBuffer.begin(), CommandBuffer.end());
+                if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
+                    throw result.Message;
+                }
             }
 
             // switch state
@@ -60,8 +62,9 @@ namespace NBulk {
             // print accumulated data if any
             if (CommandBuffer.size()) {
                 auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
-                Printer->HandleBlock(std::move(commands));
-                // CommandBuffer.erase(CommandBuffer.begin(), CommandBuffer.end());
+                if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
+                    throw result.Message;
+                }
             }
 
             // no state change
@@ -95,8 +98,9 @@ namespace NBulk {
             if (NestingLevel == 0) {
                 // dump all data
                 auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
-                Printer->HandleBlock(std::move(commands));
-                // CommandBuffer.erase(CommandBuffer.begin(), CommandBuffer.end());
+                if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
+                    throw result.Message;
+                }
 
                 return std::make_unique<TNormalBlock>(BlockSize, Printer);
             }
