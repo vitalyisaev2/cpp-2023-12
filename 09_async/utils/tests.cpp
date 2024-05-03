@@ -2,8 +2,6 @@
 
 #include "thread_pool.hpp"
 
-using namespace std::chrono_literals;
-
 TEST(ThreadPool, Test) {
     NUtils::TThreadPool<int> tp(2);
     std::array<std::future<int>, 2> futures;

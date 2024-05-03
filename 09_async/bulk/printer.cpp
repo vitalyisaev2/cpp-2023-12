@@ -8,22 +8,25 @@
 #include <memory>
 
 namespace NBulk {
+    void DumpCommands(std::ostream& stream, const TCommands& commands) {
+        stream << "bulk: ";
+
+        for (std::size_t i = 0; i < commands->size(); i++) {
+            stream << commands->at(i).Value;
+
+            if (i != commands->size() - 1) {
+                stream << ", ";
+            }
+        }
+
+        stream << std::endl;
+    }
+
     std::future<IPrinter::TResult> TStdOutPrinter::HandleBlock(const TCommands& commands) {
         return ThreadPool->Enqueue(
             [commands =
                  commands]([[maybe_unused]] NUtils::TThreadPool<IPrinter::TResult>::TThreadId threadId) -> TResult {
-                std::cout << "bulk: ";
-
-                for (std::size_t i = 0; i < commands->size(); i++) {
-                    std::cout << commands->at(i).Value;
-
-                    if (i != commands->size() - 1) {
-                        std::cout << ", ";
-                    }
-                }
-
-                std::cout << std::endl;
-
+                DumpCommands(std::cout, commands);
                 return TResult{.Ok = true, .Message = ""};
             });
     }
@@ -39,9 +42,8 @@ namespace NBulk {
             auto filenameAbs = std::filesystem::current_path() / filenameLocal;
 
             std::ofstream outfile(filenameAbs);
-            for (const auto& cmd : *commands) {
-                outfile << cmd.Value << std::endl;
-            }
+
+            DumpCommands(outfile, commands);
 
             outfile.close();
 
