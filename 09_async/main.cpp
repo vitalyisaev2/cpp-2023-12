@@ -1,15 +1,25 @@
+#include <iostream>
+
 #include "async.hpp"
 
-int main(int, char*[]) {
-    std::size_t bulk = 5;
-    auto h = async::connect(bulk);
-    auto h2 = async::connect(bulk);
-    async::receive(h, "1", 1);
-    async::receive(h2, "1\n", 2);
-    async::receive(h, "\n2\n3\n4\n5\n6\n{\na\n", 15);
-    async::receive(h, "b\nc\nd\n}\n89\n", 11);
-    async::disconnect(h);
-    async::disconnect(h2);
+int main(int argc, char** argv) {
+    if (argc != 2) {
+        std::cout << "invalid number of args" << std::endl;
+        exit(1);
+    }
 
-    return 0;
+    try {
+        std::size_t blockSize = std::stoi(argv[1]);
+
+        auto handle = async::connect(blockSize);
+
+        std::string line;
+        while (std::getline(std::cin, line)) {
+            async::receive(handle, line.data(), line.size());
+        }
+
+        async::disconnect(handle);
+    } catch (std::exception& e) {
+        std::cout << "Failure: " << e.what() << std::endl;
+    }
 }

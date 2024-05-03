@@ -31,7 +31,7 @@ namespace NBulk {
             if (CommandBuffer.size() == BlockSize) {
                 auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
                 if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
-                    throw result.Message;
+                    throw std::runtime_error(result.Message);
                 }
             }
 
@@ -46,7 +46,7 @@ namespace NBulk {
             if (CommandBuffer.size()) {
                 auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
                 if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
-                    throw result.Message;
+                    throw std::runtime_error(result.Message);
                 }
             }
 
@@ -63,7 +63,7 @@ namespace NBulk {
             if (CommandBuffer.size()) {
                 auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
                 if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
-                    throw result.Message;
+                    throw std::runtime_error(result.Message);
                 }
             }
 
@@ -99,7 +99,7 @@ namespace NBulk {
                 // dump all data
                 auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
                 if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
-                    throw result.Message;
+                    throw std::runtime_error(result.Message);
                 }
 
                 return std::make_unique<TNormalBlock>(BlockSize, Printer);

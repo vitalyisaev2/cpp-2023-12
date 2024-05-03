@@ -15,16 +15,16 @@ target_link_libraries(async PRIVATE bulk_lib)
 install(TARGETS async DESTINATION ${LIBRARY_INSTALL_DIR})
 install(FILES "${PROJECT_SOURCE_DIR}/async.hpp" DESTINATION include ${CMAKE_INSTALL_INCLUDEDIR})
 
-add_executable(async_example main.cpp)
-target_compile_options(async_example PRIVATE -Wall -Wextra -pedantic -Werror)
-target_include_directories(async_example PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(async_example PRIVATE async)
-set_target_properties(async_example PROPERTIES
+add_executable(bulk_async main.cpp)
+target_compile_options(bulk_async PRIVATE -Wall -Wextra -pedantic -Werror)
+target_include_directories(bulk_async PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(bulk_async PRIVATE async)
+set_target_properties(bulk_async PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
 )
 
-install(TARGETS async_example DESTINATION bin)
+install(TARGETS bulk_async DESTINATION bin)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
 # include(package)
