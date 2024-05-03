@@ -67,7 +67,12 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "typeinfo": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "future": "cpp",
+        "codecvt": "cpp",
+        "fstream": "cpp",
+        "shared_mutex": "cpp",
+        "cinttypes": "cpp"
     },
     "clang-format.fallbackStyle": "none",
     "editor.defaultFormatter": "xaver.clang-format"

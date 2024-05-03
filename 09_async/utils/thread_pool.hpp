@@ -13,15 +13,15 @@ namespace NUtils {
     template <class T>
     class TThreadSafeQueue {
     public:
-        void push(const T& value) {
-            std::lock_guard<std::mutex> queueLock{QueueMutex};
-            Queue.push(value);
+        void push(T value) {
+            std::lock_guard<std::mutex> lock{Mutex};
+            Queue.push(std::move(value));
             ConditionVariable.notify_one();
         }
 
         T pop() {
-            std::unique_lock<std::mutex> queueLock{QueueMutex};
-            ConditionVariable.wait(queueLock, [&] { return !Queue.empty(); });
+            std::unique_lock<std::mutex> lock{Mutex};
+            ConditionVariable.wait(lock, [&] { return !Queue.empty(); });
             T val = std::move(Queue.front());
             Queue.pop();
             return val;
@@ -30,7 +30,7 @@ namespace NUtils {
     private:
         std::queue<T> Queue;
         std::condition_variable ConditionVariable;
-        std::mutex QueueMutex;
+        std::mutex Mutex;
     };
 
     template <class T>
@@ -53,7 +53,7 @@ namespace NUtils {
         std::thread MakeThread(std::size_t threadId) {
             return std::thread{[&queue = this->Queue, threadId] {
                 while (true) {
-                    const auto task = queue.pop();
+                    auto task = queue.pop();
                     switch (task.Kind) {
                         case TTask::EKind::Execute:
                             task.Promise.set_value(task.Execute(threadId));

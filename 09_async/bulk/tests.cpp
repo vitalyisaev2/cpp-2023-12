@@ -10,9 +10,13 @@ class TAccumulatingPrinter: public NBulk::IPrinter {
 public:
     using TDump = std::vector<std::vector<std::string>>;
 
-    void HandleBlock(const NBulk::TCommands& commands) override {
+    std::future<NBulk::IPrinter::TResult> HandleBlock(const NBulk::TCommands& commands) override {
         Buffer.push_back(*commands);
+        std::promise<NBulk::IPrinter::TResult> promise;
+        promise.set_value({});
+        return promise.get_future();
     }
+
     void DumpResults(TDump& rcv) const {
         for (const auto& cmdBlock : Buffer) {
             std::vector<std::string> stringBlock;
@@ -102,8 +106,8 @@ cmd11
 }
 
 TEST(Parser, RealPrinter) {
-    auto threadPoolFile = NUtils::MakeThreadPool<void>(2);
-    auto threadPoolStdout = NUtils::MakeThreadPool<void>(1);
+    auto threadPoolFile = NUtils::MakeThreadPool<NBulk::IPrinter::TResult>(2);
+    auto threadPoolStdout = NUtils::MakeThreadPool<NBulk::IPrinter::TResult>(1);
 
     std::vector<NBulk::IPrinter::TPtr> lowLevelPrinters{
         std::make_shared<NBulk::TFilePrinter>(threadPoolFile),

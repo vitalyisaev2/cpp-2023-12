@@ -5,18 +5,19 @@
 using namespace std::chrono_literals;
 
 TEST(ThreadPool, Test) {
-    NUtils::TThreadPool<void> tp(2);
-    std::vector<std::future<void>> futures(2);
+    NUtils::TThreadPool<int> tp(2);
+    std::array<std::future<int>, 2> futures;
 
-    futures[0] = tp.Enqueue([](NUtils::TThreadPool<void>::TThreadId threadId) {
+    futures[0] = tp.Enqueue([](NUtils::TThreadPool<int>::TThreadId threadId) {
         std::cout << "threadId = " << threadId << ", " << "task1" << std::endl;
+        return 0;
     });
 
-    futures[1] = tp.Enqueue([](NUtils::TThreadPool<void>::TThreadId threadId) {
+    futures[1] = tp.Enqueue([](NUtils::TThreadPool<int>::TThreadId threadId) {
         std::cout << "threadId = " << threadId << ", " << "task2" << std::endl;
+        return 1;
     });
 
-    for (const auto& f: futures) {
-        f.wait();
-    }
+    ASSERT_EQ(futures[0].get(), 0);
+    ASSERT_EQ(futures[1].get(), 1);
 }
