@@ -25,7 +25,7 @@ jobs:
       run: |
         mkdir ${{github.workspace}}/packages
         
-        HOMEWORK_DIRS=$(find . -type d -regex '\.\/[0-9]+_.*' | sort)
+        HOMEWORK_DIRS=$(find . -type d -regex '\.\/[0-9]+_.*' -maxdepth 1 | sort)
         echo $HOMEWORK_DIRS
         
         for HOMEWORK_DIR in $HOMEWORK_DIRS; do
