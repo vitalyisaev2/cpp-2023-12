@@ -2,6 +2,7 @@
 #include "event.hpp"
 
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <stdexcept>
 #include <variant>
@@ -21,6 +22,8 @@ namespace NBulk {
 
         return os;
     }
+
+
 
     IState::TPtr TNormalBlock::HandleEvent(const TEvent& ev) {
         if (std::holds_alternative<TCommand>(ev)) {
