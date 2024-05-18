@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include "state.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -26,7 +27,7 @@ namespace NBulk {
         State->HandleEvent(TEndOfFile{});
     }
 
-    TParser::TPtr MakeParser(std::size_t blockSize, IPrinter::TPtr&& printer) {
-        return std::make_shared<TParser>(blockSize, std::move(printer));
+    TParser::TPtr MakeParser(TAccumulatorFactory::TPtr accumulatorFactory) {
+        return std::make_shared<TParser>(std::move(accumulatorFactory));
     }
 } //namespace NBulk

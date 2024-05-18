@@ -2,9 +2,8 @@
 
 #include <cstddef>
 #include <memory>
-#include <vector>
 
-#include "printer.hpp"
+#include "accumulator_factory.hpp"
 #include "event.hpp"
 
 namespace NBulk {
@@ -16,37 +15,33 @@ namespace NBulk {
     public:
         using TPtr = std::unique_ptr<IState>;
 
-        virtual IState::TPtr HandleEvent(const TEvent& data) = 0;
+        virtual IState::TPtr HandleEvent(TEvent data) = 0;
         virtual ~IState(){};
     };
 
     class TNormalBlock: public IState {
     public:
-        explicit TNormalBlock(std::size_t blockSize, IPrinter::TPtr& printer)
-            : BlockSize(blockSize)
-            , Printer(printer){};
+        explicit TNormalBlock(TAccumulatorFactory::TPtr accumulatorFactory)
+            : AccumulatorFactory(accumulatorFactory){};
 
-        IState::TPtr HandleEvent(const TEvent& data) override;
+        IState::TPtr HandleEvent(TEvent data) override;
 
     private:
-        std::size_t BlockSize;
-        IPrinter::TPtr Printer;
-        std::vector<TCommand> CommandBuffer;
+        TAccumulatorFactory::TPtr AccumulatorFactory;
     };
 
     class TDynamicBlock: public IState {
     public:
-        TDynamicBlock(std::size_t blockSize, IPrinter::TPtr& printer) noexcept
-            : BlockSize(blockSize)
-            , NestingLevel(1)
-            , Printer(printer){};
+        TDynamicBlock(TAccumulatorFactory::TPtr accumulatorFactory)
+            : NestingLevel(1)
+            , AccumulatorFactory(accumulatorFactory)
+            , Accumulator(accumulatorFactory->MakeDefaultAccumulator()){};
 
-        IState::TPtr HandleEvent(const TEvent& data) override;
+        IState::TPtr HandleEvent(TEvent data) override;
 
     private:
-        std::size_t BlockSize;
         std::size_t NestingLevel;
-        IPrinter::TPtr Printer;
-        std::vector<TCommand> CommandBuffer;
+        TAccumulatorFactory::TPtr AccumulatorFactory;
+        TDefaultAccumulator::TPtr Accumulator;
     };
 } //namespace NBulk

@@ -1,17 +1,20 @@
 #include <cstddef>
 #include <atomic>
+#include <memory>
 #include <unordered_map>
 #include <mutex>
 #include <shared_mutex>
 
 #include "async.hpp"
 #include "bulk/parser.hpp"
+#include "bulk/printer.hpp"
+#include "bulk/state.hpp"
 #include "utils/thread_pool.hpp"
 
 // TParserController is a singleton container type providing instances of thread pool.
 class TParserController {
 public:
-    static TParserController* GetInstance();
+    static TParserController* GetInstance(std::size_t blockSize);
 
     using TParserId = std::size_t;
 
@@ -21,14 +24,22 @@ private:
         : File(std::move(threadPoolFile))
         , StdOut(std::move(threadPoolStdOut))
         , ParserCounter(0) {
+        std::vector<NBulk::IPrinter::TPtr> lowLevelPrinters{
+            std::make_shared<NBulk::TFilePrinter>(threadPoolFile),
+            std::make_shared<NBulk::TStdOutPrinter>(threadPoolStdOut),
+        };
+
+        AccumulatorFactory = std::make_shared<NBulk::TAccumulatorFactory>(
+            NBulk::MakeCompositePrinter(std::move(lowLevelPrinters)));
     }
 
     static std::atomic<TParserController*> Instance;
     static std::mutex InstanceMutex;
     NUtils::TThreadPool<NBulk::IPrinter::TResult>::TPtr File;
     NUtils::TThreadPool<NBulk::IPrinter::TResult>::TPtr StdOut;
+    NBulk::TAccumulatorFactory::TPtr AccumulatorFactory;
 
-    std::unordered_map<TParserId, NBulk::TParser::TPtr> Storage;
+    std::unordered_map<TParserId, NBulk::TParser::TPtr> Parsers;
     TParserId ParserCounter;
     std::shared_mutex StorageMutex; // synchronizes access to storage
 
@@ -36,31 +47,25 @@ public:
     TParserId MakeParser(const std::size_t blockSize) {
         std::unique_lock<std::shared_mutex> lock(StorageMutex);
 
-        std::vector<NBulk::IPrinter::TPtr> lowLevelPrinters{
-            std::make_shared<NBulk::TFilePrinter>(TParserController::GetInstance()->File),
-            std::make_shared<NBulk::TStdOutPrinter>(TParserController::GetInstance()->StdOut),
-        };
-
         auto out = ParserCounter;
 
-        Storage[ParserCounter++] =
-            NBulk::MakeParser(blockSize, NBulk::MakeCompositePrinter(std::move(lowLevelPrinters)));
+        Parsers[ParserCounter++] = NBulk::MakeParser(AccumulatorFactory);
 
         return out;
     }
 
     void HandleLine(const TParserId parserId, std::string&& line) {
         std::shared_lock<std::shared_mutex> lock(StorageMutex);
-        Storage[parserId]->HandleLine(std::move(line));
+        Parsers[parserId]->HandleLine(std::move(line));
     }
 
     void RemoveParser(const TParserId parserId) {
         std::unique_lock<std::shared_mutex> lock(StorageMutex);
 
-        auto iter = Storage.find(parserId);
-        if (iter != Storage.end()) {
+        auto iter = Parsers.find(parserId);
+        if (iter != Parsers.end()) {
             iter->second->Terminate();
-            Storage.erase(iter);
+            Parsers.erase(iter);
         }
     }
 };

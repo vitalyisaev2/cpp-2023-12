@@ -1,8 +1,8 @@
 #include "state.hpp"
 #include "event.hpp"
 
+#include <memory>
 #include <iostream>
-#include <sstream>
 #include <memory>
 #include <stdexcept>
 #include <variant>
@@ -23,20 +23,10 @@ namespace NBulk {
         return os;
     }
 
-
-
-    IState::TPtr TNormalBlock::HandleEvent(const TEvent& ev) {
+    IState::TPtr TNormalBlock::HandleEvent(TEvent ev) {
         if (std::holds_alternative<TCommand>(ev)) {
             // accumulate commands in buffer
-            CommandBuffer.emplace_back(std::move(std::get<TCommand>(ev).Value));
-
-            // if enough data collected, dump it
-            if (CommandBuffer.size() == BlockSize) {
-                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
-                if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
-                    throw std::runtime_error(result.Message);
-                }
-            }
+            AccumulatorFactory->GetThreadSafeGroupingAccumulator()->AddCommand(std::move(std::get<TCommand>(ev)));
 
             // no state change
             return nullptr;
@@ -46,15 +36,10 @@ namespace NBulk {
             // start new dynamical block
 
             // print accumulated data if any
-            if (CommandBuffer.size()) {
-                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
-                if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
-                    throw std::runtime_error(result.Message);
-                }
-            }
+            AccumulatorFactory->GetThreadSafeGroupingAccumulator()->Dump();
 
             // switch state
-            return std::make_unique<TDynamicBlock>(BlockSize, Printer);
+            return std::make_unique<TDynamicBlock>(AccumulatorFactory);
         }
 
         if (std::holds_alternative<TBlockEnd>(ev)) {
@@ -63,12 +48,7 @@ namespace NBulk {
 
         if (std::holds_alternative<TEndOfFile>(ev)) {
             // print accumulated data if any
-            if (CommandBuffer.size()) {
-                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
-                if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
-                    throw std::runtime_error(result.Message);
-                }
-            }
+            AccumulatorFactory->GetThreadSafeGroupingAccumulator()->Dump();
 
             // no state change
             return nullptr;
@@ -77,10 +57,10 @@ namespace NBulk {
         throw std::invalid_argument("TNormalBlock::HandleEvent: unexpected event");
     };
 
-    IState::TPtr TDynamicBlock::HandleEvent(const TEvent& ev) {
+    IState::TPtr TDynamicBlock::HandleEvent(TEvent ev) {
         if (std::holds_alternative<TCommand>(ev)) {
             // just accumulate commands in buffer
-            CommandBuffer.emplace_back(std::move(std::get<TCommand>(ev).Value));
+            Accumulator->AddCommand(std::move(std::get<TCommand>(ev)));
 
             // no state change
             return nullptr;
@@ -100,12 +80,9 @@ namespace NBulk {
 
             if (NestingLevel == 0) {
                 // dump all data
-                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
-                if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
-                    throw std::runtime_error(result.Message);
-                }
+                Accumulator->Dump();
 
-                return std::make_unique<TNormalBlock>(BlockSize, Printer);
+                return std::make_unique<TNormalBlock>(AccumulatorFactory);
             }
 
             // no state change

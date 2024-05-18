@@ -25,11 +25,11 @@ namespace NBulk {
     IState::TPtr TNormalBlock::HandleEvent(const TEvent& ev) {
         if (std::holds_alternative<TCommand>(ev)) {
             // accumulate commands in buffer
-            CommandBuffer.emplace_back(std::move(std::get<TCommand>(ev).Value));
+            Accumulator.emplace_back(std::move(std::get<TCommand>(ev).Value));
 
             // if enough data collected, dump it
-            if (CommandBuffer.size() == BlockSize) {
-                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
+            if (Accumulator.size() == BlockSize) {
+                auto commands = std::make_shared<std::vector<TCommand>>(std::move(Accumulator));
                 if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
                     throw std::runtime_error(result.Message);
                 }
@@ -43,8 +43,8 @@ namespace NBulk {
             // start new dynamical block
 
             // print accumulated data if any
-            if (CommandBuffer.size()) {
-                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
+            if (Accumulator.size()) {
+                auto commands = std::make_shared<std::vector<TCommand>>(std::move(Accumulator));
                 if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
                     throw std::runtime_error(result.Message);
                 }
@@ -60,8 +60,8 @@ namespace NBulk {
 
         if (std::holds_alternative<TEndOfFile>(ev)) {
             // print accumulated data if any
-            if (CommandBuffer.size()) {
-                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
+            if (Accumulator.size()) {
+                auto commands = std::make_shared<std::vector<TCommand>>(std::move(Accumulator));
                 if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
                     throw std::runtime_error(result.Message);
                 }
@@ -77,7 +77,7 @@ namespace NBulk {
     IState::TPtr TDynamicBlock::HandleEvent(const TEvent& ev) {
         if (std::holds_alternative<TCommand>(ev)) {
             // just accumulate commands in buffer
-            CommandBuffer.emplace_back(std::move(std::get<TCommand>(ev).Value));
+            Accumulator.emplace_back(std::move(std::get<TCommand>(ev).Value));
 
             // no state change
             return nullptr;
@@ -97,7 +97,7 @@ namespace NBulk {
 
             if (NestingLevel == 0) {
                 // dump all data
-                auto commands = std::make_shared<std::vector<TCommand>>(std::move(CommandBuffer));
+                auto commands = std::make_shared<std::vector<TCommand>>(std::move(Accumulator));
                 if (auto result = Printer->HandleBlock(std::move(commands)).get(); !result.Ok) {
                     throw std::runtime_error(result.Message);
                 }
