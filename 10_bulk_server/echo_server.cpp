@@ -8,6 +8,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -16,101 +17,90 @@
 
 using boost::asio::ip::tcp;
 
-class session
-  : public std::enable_shared_from_this<session>
-{
+class TSession: public std::enable_shared_from_this<TSession> {
 public:
-  session(tcp::socket socket)
-    : socket_(std::move(socket))
-  {
-  }
-
-  void start()
-  {
-    do_read();
-  }
-
-private:
-  void do_read()
-  {
-    auto self(shared_from_this());
-    socket_.async_read_some(boost::asio::buffer(data_, max_length),
-        [this, self](boost::system::error_code ec, std::size_t length)
-        {
-          if (!ec)
-          {
-            do_write(length);
-          }
-        });
-  }
-
-  void do_write(std::size_t length)
-  {
-    auto self(shared_from_this());
-    boost::asio::async_write(socket_, boost::asio::buffer(data_, length),
-        [this, self](boost::system::error_code ec, std::size_t /*length*/)
-        {
-          if (!ec)
-          {
-            do_read();
-          }
-        });
-  }
-
-  tcp::socket socket_;
-  enum { max_length = 1024 };
-  char data_[max_length];
-};
-
-class server
-{
-public:
-  server(boost::asio::io_service& io_service, short port)
-    : acceptor_(io_service, tcp::endpoint(tcp::v4(), port)),
-      socket_(io_service)
-  {
-    do_accept();
-  }
-
-private:
-  void do_accept()
-  {
-    acceptor_.async_accept(socket_,
-        [this](boost::system::error_code ec)
-        {
-          if (!ec)
-          {
-            std::make_shared<session>(std::move(socket_))->start();
-          }
-
-          do_accept();
-        });
-  }
-
-  tcp::acceptor acceptor_;
-  tcp::socket socket_;
-};
-
-int main(int argc, char* argv[])
-{
-  try
-  {
-    if (argc != 2)
-    {
-      std::cerr << "Usage: async_tcp_echo_server <port>\n";
-      return 1;
+    TSession(tcp::socket socket)
+        : Socket_(std::move(socket)) {
+        std::cout << "Session created" << std::endl;
     }
 
-    boost::asio::io_service io_service;
+    void Start() {
+        std::cout << "Session started" << std::endl;
+        DoRead();
+    }
 
-    server s(io_service, std::atoi(argv[1]));
+    ~TSession() {
+        std::cout << "Session destroyed" << std::endl;
+    }
 
-    io_service.run();
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "Exception: " << e.what() << "\n";
-  }
+private:
+    void DoRead() {
+        auto self(shared_from_this());
+        Socket_.async_read_some(boost::asio::buffer(Data_, MaxLength_),
+                                [this, self](boost::system::error_code ec, std::size_t length) {
+                                    std::cout << "Async read some" << std::endl;
+                                    if (!ec) {
+                                        DoWrite(length);
+                                    }
+                                });
+    }
 
-  return 0;
+    void DoWrite(std::size_t length) {
+        auto self(shared_from_this());
+        boost::asio::async_write(Socket_, boost::asio::buffer(Data_, length),
+                                 [this, self](boost::system::error_code ec, std::size_t /*length*/) {
+                                     std::cout << "Async write some" << std::endl;
+                                     if (!ec) {
+                                         DoRead();
+                                     }
+                                 });
+    }
+
+    tcp::socket Socket_;
+    static const std::size_t MaxLength_ = 1024;
+    char Data_[MaxLength_];
+};
+
+class TServer {
+public:
+    TServer(boost::asio::io_service& io_service, short port)
+        : Acceptor_(io_service, tcp::endpoint(tcp::v4(), port))
+        , Socket_(io_service) {
+        DoAccept();
+    }
+
+private:
+    void DoAccept() {
+        Acceptor_.async_accept(Socket_, [this](boost::system::error_code ec) {
+            std::cout << "Server async accept" << std::endl;
+
+            if (!ec) {
+                std::make_shared<TSession>(std::move(Socket_))->Start();
+            }
+
+            DoAccept();
+        });
+    }
+
+    tcp::acceptor Acceptor_;
+    tcp::socket Socket_;
+};
+
+int main(int argc, char* argv[]) {
+    try {
+        if (argc != 2) {
+            std::cerr << "Usage: async_tcp_echo_server <port>\n";
+            return 1;
+        }
+
+        boost::asio::io_service ioService;
+
+        TServer s(ioService, std::atoi(argv[1]));
+
+        ioService.run();
+    } catch (std::exception& e) {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
+
+    return 0;
 }
