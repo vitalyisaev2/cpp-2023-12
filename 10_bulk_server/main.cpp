@@ -10,17 +10,21 @@
 
 #include <cstddef>
 #include <cstdlib>
+#include <future>
 #include <iostream>
 #include <memory>
 #include <utility>
 #include <boost/asio.hpp>
 
+#include "async.hpp"
+
 using boost::asio::ip::tcp;
 
 class TSession: public std::enable_shared_from_this<TSession> {
 public:
-    TSession(tcp::socket socket)
-        : Socket_(std::move(socket)) {
+    TSession(tcp::socket socket, std::size_t bulkSize)
+        : Socket_(std::move(socket))
+        , Handle_(async::connect(bulkSize)) {
         std::cout << "Session created" << std::endl;
     }
 
@@ -31,6 +35,7 @@ public:
 
     ~TSession() {
         std::cout << "Session destroyed" << std::endl;
+        async::disconnect(Handle_);
     }
 
 private:
@@ -40,6 +45,7 @@ private:
                                 [this, self](boost::system::error_code ec, std::size_t length) {
                                     std::cout << "Async read some" << std::endl;
                                     if (!ec) {
+                                        async::receive(Handle_, Data_, length);
                                         DoWrite(length);
                                     }
                                 });
@@ -59,13 +65,15 @@ private:
     tcp::socket Socket_;
     static const std::size_t MaxLength_ = 1024;
     char Data_[MaxLength_];
+    async::handle_t Handle_;
 };
 
 class TServer {
 public:
-    TServer(boost::asio::io_service& io_service, short port)
+    TServer(boost::asio::io_service& io_service, short port, std::size_t bulkSize)
         : Acceptor_(io_service, tcp::endpoint(tcp::v4(), port))
-        , Socket_(io_service) {
+        , Socket_(io_service)
+        , BulkSize_(bulkSize) {
         DoAccept();
     }
 
@@ -75,7 +83,7 @@ private:
             std::cout << "Server async accept" << std::endl;
 
             if (!ec) {
-                std::make_shared<TSession>(std::move(Socket_))->Start();
+                std::make_shared<TSession>(std::move(Socket_), BulkSize_)->Start();
             }
 
             DoAccept();
@@ -84,18 +92,21 @@ private:
 
     tcp::acceptor Acceptor_;
     tcp::socket Socket_;
+    std::size_t BulkSize_;
 };
 
 int main(int argc, char* argv[]) {
     try {
-        if (argc != 2) {
-            std::cerr << "Usage: async_tcp_echo_server <port>\n";
+        if (argc != 3) {
+            std::cerr << "Usage: bulk_server <port> <bulk_size>\n";
             return 1;
         }
 
-        boost::asio::io_service ioService;
+        std::size_t port = std::atoi(argv[1]);
+        std::size_t bulkSize = std::atoi(argv[2]);
 
-        TServer s(ioService, std::atoi(argv[1]));
+        boost::asio::io_service ioService;
+        TServer server(ioService, port, bulkSize);
 
         ioService.run();
     } catch (std::exception& e) {
