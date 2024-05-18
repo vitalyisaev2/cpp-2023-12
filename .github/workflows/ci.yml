@@ -29,7 +29,7 @@ jobs:
       run: |
         mkdir ${{github.workspace}}/packages
         
-        HOMEWORK_DIRS=$(find . -type d -regex '\.\/[0-9]+_.*' | sort)
+        HOMEWORK_DIRS=$(find . -type d -regex '\.\/[0-9]+_.*' -maxdepth 1 | sort)
         echo $HOMEWORK_DIRS
         
         for HOMEWORK_DIR in $HOMEWORK_DIRS; do
@@ -64,5 +64,7 @@ jobs:
           ${{github.workspace}}/packages/editor-0.0.${{github.run_number}}-Linux.deb
           ${{github.workspace}}/packages/matrix-0.0.${{github.run_number}}-Linux.deb
           ${{github.workspace}}/packages/bulk-0.0.${{github.run_number}}-Linux.deb
+          ${{github.workspace}}/packages/bayan-0.0.${{github.run_number}}-Linux.deb
+          ${{github.workspace}}/packages/async-0.0.${{github.run_number}}-Linux.deb
         token: ${{secrets.RELEASE_TOKEN}}
         tag_name: 0.0.${{github.run_number}}
