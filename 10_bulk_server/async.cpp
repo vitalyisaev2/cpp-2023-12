@@ -34,6 +34,7 @@ private:
         AccumulatorFactory = NBulk::MakeAccumulatorFactory(NBulk::MakeCompositePrinter(std::move(lowLevelPrinters)));
     }
 
+
     static std::atomic<TParserController*> Instance;
     static std::mutex InstanceMutex;
     NUtils::TThreadPool<NBulk::IPrinter::TResult>::TPtr File;

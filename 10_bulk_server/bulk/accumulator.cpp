@@ -1,5 +1,6 @@
 #include "accumulator.hpp"
 #include <cstddef>
+#include <mutex>
 
 namespace NBulk {
     void TDefaultAccumulator::AddCommand(TCommand&& command) {
@@ -19,7 +20,7 @@ namespace NBulk {
     }
 
     void TThreadSafeGroupingAccumulator::AddCommand(TCommand&& command, std::size_t blockSize) {
-        std::lock_guard<std::mutex> lock{Mutex_};
+        std::unique_lock<std::mutex> lock{Mutex_};
 
         Buffer_.emplace_back(std::move(command));
 
@@ -36,7 +37,7 @@ namespace NBulk {
     }
 
     void TThreadSafeGroupingAccumulator::Dump() {
-        std::lock_guard<std::mutex> lock{Mutex_};
+        std::unique_lock<std::mutex> lock{Mutex_};
 
         // if any data collected, dump it
         if (Buffer_.size()) {

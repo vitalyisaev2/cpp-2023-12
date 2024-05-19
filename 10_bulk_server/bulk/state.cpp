@@ -47,8 +47,10 @@ namespace NBulk {
         }
 
         if (std::holds_alternative<TEndOfFile>(ev)) {
-            // print accumulated data if any
-            AccumulatorFactory_->GetThreadSafeGroupingAccumulator()->Dump();
+            // We used to Dump accumulated commands before, but now this buffer is shared among threads,
+            // so there's no sense to dump it as someone else may use it.
+
+            // AccumulatorFactory_->GetThreadSafeGroupingAccumulator()->Dump();
 
             // no state change
             return nullptr;

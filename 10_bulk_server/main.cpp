@@ -11,7 +11,7 @@
 #include "server.hpp"
 
 int main(int argc, char* argv[]) {
-    // try {
+    try {
         if (argc != 3) {
             std::cerr << "Usage: bulk_server <port> <bulk_size>\n";
             return 1;
@@ -23,10 +23,10 @@ int main(int argc, char* argv[]) {
         boost::asio::io_service ioService;
         TServer server(ioService, port, bulkSize);
 
-        ioService.run();
-    // } catch (std::exception& e) {
-        // std::cerr << "Exception: " << e.what() << "\n";
-    // }
+        // ioService.run();
+    } catch (std::exception& e) {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
 
     return 0;
 }

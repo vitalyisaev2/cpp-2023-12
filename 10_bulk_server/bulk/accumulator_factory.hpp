@@ -1,5 +1,6 @@
 #include "accumulator.hpp"
 #include "printer.hpp"
+
 #include <memory>
 
 namespace NBulk {
@@ -20,6 +21,7 @@ namespace NBulk {
         TDefaultAccumulator::TPtr MakeDefaultAccumulator() const {
             return std::make_unique<TDefaultAccumulator>(Printer_);
         }
+
 
     private:
         IPrinter::TPtr Printer_;
