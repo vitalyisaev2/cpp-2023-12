@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/asio/detail/assert.hpp>
 #include <memory>
 #include <vector>
 
@@ -23,8 +24,10 @@ namespace NBulk {
     class TStdOutPrinter: public IPrinter {
     public:
         TStdOutPrinter() = delete;
-        TStdOutPrinter(NUtils::TThreadPool<IPrinter::TResult>::TPtr& threadPool)
-            : ThreadPool(threadPool){};
+        TStdOutPrinter(NUtils::TThreadPool<IPrinter::TResult>::TPtr threadPool)
+            : ThreadPool(threadPool){
+                BOOST_ASSERT(threadPool);
+            };
 
         std::future<TResult> HandleBlock(const TCommands& commands) override;
 
@@ -35,8 +38,10 @@ namespace NBulk {
     class TFilePrinter: public IPrinter {
     public:
         TFilePrinter() = delete;
-        TFilePrinter(NUtils::TThreadPool<IPrinter::TResult>::TPtr& threadPool)
-            : ThreadPool(threadPool){};
+        TFilePrinter(NUtils::TThreadPool<IPrinter::TResult>::TPtr threadPool)
+            : ThreadPool(threadPool){
+                BOOST_ASSERT(threadPool);
+            };
 
         std::future<TResult> HandleBlock(const TCommands& commands) override;
 

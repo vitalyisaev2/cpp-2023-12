@@ -1,4 +1,5 @@
 #include "accumulator.hpp"
+#include "printer.hpp"
 #include <memory>
 
 namespace NBulk {
@@ -8,7 +9,7 @@ namespace NBulk {
 
         TAccumulatorFactory(IPrinter::TPtr printer)
             : Printer_(printer)
-            , ThreadSafeGroupingAccumulator_(std::make_shared<TThreadSafeGroupingAccumulator>(blockSize, printer)) {
+            , ThreadSafeGroupingAccumulator_(std::make_shared<TThreadSafeGroupingAccumulator>(printer)) {
         }
 
         TThreadSafeGroupingAccumulator::TPtr GetThreadSafeGroupingAccumulator() const {
@@ -24,4 +25,6 @@ namespace NBulk {
         IPrinter::TPtr Printer_;
         TThreadSafeGroupingAccumulator::TPtr ThreadSafeGroupingAccumulator_;
     };
+
+    TAccumulatorFactory::TPtr MakeAccumulatorFactory(IPrinter::TPtr printer);
 } //namespace NBulk

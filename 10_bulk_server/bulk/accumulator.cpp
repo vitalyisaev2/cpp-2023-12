@@ -1,4 +1,5 @@
 #include "accumulator.hpp"
+#include <cstddef>
 
 namespace NBulk {
     void TDefaultAccumulator::AddCommand(TCommand&& command) {
@@ -17,17 +18,18 @@ namespace NBulk {
         }
     }
 
-    void TThreadSafeGroupingAccumulator::AddCommand(TCommand&& command) {
+    void TThreadSafeGroupingAccumulator::AddCommand(TCommand&& command, std::size_t blockSize) {
         std::lock_guard<std::mutex> lock{Mutex_};
 
         Buffer_.emplace_back(std::move(command));
 
         // if enough data collected, dump it
-        if (Buffer_.size() == BlockSize_) {
+        if (Buffer_.size() == blockSize) {
             auto commands = std::make_shared<std::vector<TCommand>>(std::move(Buffer_));
             if (auto result = Printer_->HandleBlock(std::move(commands)).get(); !result.Ok) {
                 throw std::runtime_error(result.Message);
             }
+
             // Clear the buffer after dumping to ensure it starts fresh for the next set of commands
             Buffer_.clear();
         }

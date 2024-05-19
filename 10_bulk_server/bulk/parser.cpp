@@ -27,7 +27,7 @@ namespace NBulk {
         State->HandleEvent(TEndOfFile{});
     }
 
-    TParser::TPtr MakeParser(TAccumulatorFactory::TPtr accumulatorFactory) {
-        return std::make_shared<TParser>(std::move(accumulatorFactory));
+    TParser::TPtr MakeParser(TAccumulatorFactory::TPtr accumulatorFactory, std::size_t blockSize) {
+        return std::make_shared<TParser>(std::move(accumulatorFactory), blockSize);
     }
 } //namespace NBulk

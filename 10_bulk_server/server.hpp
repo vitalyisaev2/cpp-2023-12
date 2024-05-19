@@ -13,9 +13,8 @@ class TSession: public std::enable_shared_from_this<TSession> {
 public:
     TSession(tcp::socket socket, std::size_t bulkSize)
         : Socket_(std::move(socket))
-        , Buffer_(BufferSize_, '\0') 
-        , Handle_(async::connect(bulkSize))
-        {
+        , Buffer_(BufferSize_, '\0')
+        , Handle_(async::connect(bulkSize)) {
         std::cout << "Session created" << std::endl;
     }
 
@@ -55,9 +54,6 @@ private:
             start = end + delimiter.length();
             end = Buffer_.find(delimiter, start);
         }
-        // Add the last token
-        tokens.push_back(Buffer_.substr(start));
-
         return tokens;
     }
 

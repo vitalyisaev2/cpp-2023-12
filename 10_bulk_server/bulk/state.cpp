@@ -26,7 +26,7 @@ namespace NBulk {
     IState::TPtr TNormalBlock::HandleEvent(TEvent ev) {
         if (std::holds_alternative<TCommand>(ev)) {
             // accumulate commands in buffer
-            AccumulatorFactory->GetThreadSafeGroupingAccumulator()->AddCommand(std::move(std::get<TCommand>(ev)));
+            AccumulatorFactory_->GetThreadSafeGroupingAccumulator()->AddCommand(std::move(std::get<TCommand>(ev)), BlockSize_);
 
             // no state change
             return nullptr;
@@ -36,10 +36,10 @@ namespace NBulk {
             // start new dynamical block
 
             // print accumulated data if any
-            AccumulatorFactory->GetThreadSafeGroupingAccumulator()->Dump();
+            AccumulatorFactory_->GetThreadSafeGroupingAccumulator()->Dump();
 
             // switch state
-            return std::make_unique<TDynamicBlock>(AccumulatorFactory);
+            return std::make_unique<TDynamicBlock>(AccumulatorFactory_, BlockSize_);
         }
 
         if (std::holds_alternative<TBlockEnd>(ev)) {
@@ -48,7 +48,7 @@ namespace NBulk {
 
         if (std::holds_alternative<TEndOfFile>(ev)) {
             // print accumulated data if any
-            AccumulatorFactory->GetThreadSafeGroupingAccumulator()->Dump();
+            AccumulatorFactory_->GetThreadSafeGroupingAccumulator()->Dump();
 
             // no state change
             return nullptr;
@@ -60,7 +60,7 @@ namespace NBulk {
     IState::TPtr TDynamicBlock::HandleEvent(TEvent ev) {
         if (std::holds_alternative<TCommand>(ev)) {
             // just accumulate commands in buffer
-            Accumulator->AddCommand(std::move(std::get<TCommand>(ev)));
+            DefaultAccumulator_->AddCommand(std::move(std::get<TCommand>(ev)));
 
             // no state change
             return nullptr;
@@ -68,7 +68,7 @@ namespace NBulk {
 
         if (std::holds_alternative<TBlockStart>(ev)) {
             // increment number of opened '{'s
-            NestingLevel++;
+            NestingLevel_++;
 
             // no state change
             return nullptr;
@@ -76,13 +76,13 @@ namespace NBulk {
 
         if (std::holds_alternative<TBlockEnd>(ev)) {
             // decrement number of opened '{'s
-            NestingLevel--;
+            NestingLevel_--;
 
-            if (NestingLevel == 0) {
+            if (NestingLevel_ == 0) {
                 // dump all data
-                Accumulator->Dump();
+                DefaultAccumulator_->Dump();
 
-                return std::make_unique<TNormalBlock>(AccumulatorFactory);
+                return std::make_unique<TNormalBlock>(AccumulatorFactory_, BlockSize_);
             }
 
             // no state change

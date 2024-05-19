@@ -10,8 +10,8 @@ namespace NBulk {
     public:
         using TPtr = std::shared_ptr<TParser>;
 
-        TParser(TAccumulatorFactory::TPtr accumulatorFactory) noexcept
-            : State(std::make_unique<TNormalBlock>(accumulatorFactory)) {
+        TParser(TAccumulatorFactory::TPtr accumulatorFactory, std::size_t blockSize) noexcept
+            : State(std::make_unique<TNormalBlock>(accumulatorFactory, blockSize)) {
         }
 
         void HandleLine(std::string&& line);
@@ -21,5 +21,5 @@ namespace NBulk {
         IState::TPtr State;
     };
 
-    TParser::TPtr MakeParser(TAccumulatorFactory::TPtr accumulatorFactory);
+    TParser::TPtr MakeParser(TAccumulatorFactory::TPtr accumulatorFactory, std::size_t blockSize);
 } //namespace NBulk

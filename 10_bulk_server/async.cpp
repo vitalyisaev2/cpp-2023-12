@@ -1,3 +1,4 @@
+#include <boost/asio/detail/assert.hpp>
 #include <cstddef>
 #include <atomic>
 #include <memory>
@@ -14,7 +15,7 @@
 // TParserController is a singleton container type providing instances of thread pool.
 class TParserController {
 public:
-    static TParserController* GetInstance(std::size_t blockSize);
+    static TParserController* GetInstance();
 
     using TParserId = std::size_t;
 
@@ -24,13 +25,13 @@ private:
         : File(std::move(threadPoolFile))
         , StdOut(std::move(threadPoolStdOut))
         , ParserCounter(0) {
+
         std::vector<NBulk::IPrinter::TPtr> lowLevelPrinters{
-            std::make_shared<NBulk::TFilePrinter>(threadPoolFile),
-            std::make_shared<NBulk::TStdOutPrinter>(threadPoolStdOut),
+            std::make_shared<NBulk::TFilePrinter>(File),
+            std::make_shared<NBulk::TStdOutPrinter>(StdOut),
         };
 
-        AccumulatorFactory = std::make_shared<NBulk::TAccumulatorFactory>(
-            NBulk::MakeCompositePrinter(std::move(lowLevelPrinters)));
+        AccumulatorFactory = NBulk::MakeAccumulatorFactory(NBulk::MakeCompositePrinter(std::move(lowLevelPrinters)));
     }
 
     static std::atomic<TParserController*> Instance;
@@ -49,7 +50,7 @@ public:
 
         auto out = ParserCounter;
 
-        Parsers[ParserCounter++] = NBulk::MakeParser(AccumulatorFactory);
+        Parsers[ParserCounter++] = NBulk::MakeParser(AccumulatorFactory, blockSize);
 
         return out;
     }

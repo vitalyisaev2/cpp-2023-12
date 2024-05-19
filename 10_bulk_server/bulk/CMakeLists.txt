@@ -4,7 +4,7 @@ project(bulk)
 include_directories(${CMAKE_SOURCE_DIR}/utils)
 link_directories(${CMAKE_SOURCE_DIR}/utils)
 
-add_library(bulk_lib accumulator.cpp parser.cpp printer.cpp state.cpp)
+add_library(bulk_lib accumulator.cpp accumulator_factory.cpp parser.cpp printer.cpp state.cpp)
 set_target_properties(bulk_lib PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON

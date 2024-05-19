@@ -21,27 +21,30 @@ namespace NBulk {
 
     class TNormalBlock: public IState {
     public:
-        explicit TNormalBlock(TAccumulatorFactory::TPtr accumulatorFactory)
-            : AccumulatorFactory(accumulatorFactory){};
+        explicit TNormalBlock(TAccumulatorFactory::TPtr accumulatorFactory, std::size_t blockSize)
+            : AccumulatorFactory_(accumulatorFactory), BlockSize_(blockSize){};
 
         IState::TPtr HandleEvent(TEvent data) override;
 
     private:
-        TAccumulatorFactory::TPtr AccumulatorFactory;
+        TAccumulatorFactory::TPtr AccumulatorFactory_;
+        std::size_t BlockSize_;
     };
 
     class TDynamicBlock: public IState {
     public:
-        TDynamicBlock(TAccumulatorFactory::TPtr accumulatorFactory)
-            : NestingLevel(1)
-            , AccumulatorFactory(accumulatorFactory)
-            , Accumulator(accumulatorFactory->MakeDefaultAccumulator()){};
+        TDynamicBlock(TAccumulatorFactory::TPtr accumulatorFactory, std::size_t blockSize)
+            : NestingLevel_(1)
+            , BlockSize_(blockSize)
+            , AccumulatorFactory_(accumulatorFactory)
+            , DefaultAccumulator_(accumulatorFactory->MakeDefaultAccumulator()){};
 
         IState::TPtr HandleEvent(TEvent data) override;
 
     private:
-        std::size_t NestingLevel;
-        TAccumulatorFactory::TPtr AccumulatorFactory;
-        TDefaultAccumulator::TPtr Accumulator;
+        std::size_t NestingLevel_;
+        std::size_t BlockSize_;
+        TAccumulatorFactory::TPtr AccumulatorFactory_;
+        TDefaultAccumulator::TPtr DefaultAccumulator_;
     };
 } //namespace NBulk

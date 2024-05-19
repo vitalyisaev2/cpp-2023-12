@@ -44,7 +44,7 @@ private:
 
 TEST(Parser, FakePrinter1) {
     auto printer = std::make_shared<TAccumulatingPrinter>();
-    NBulk::TParser parser(3, printer);
+    NBulk::TParser parser(NBulk::MakeAccumulatorFactory(printer), 3);
 
     const std::string input =
         R"(cmd1
@@ -68,7 +68,7 @@ cmd5)";
 
 TEST(Parser, FakePrinter2) {
     auto printer = std::make_shared<TAccumulatingPrinter>();
-    NBulk::TParser parser(3, printer);
+    NBulk::TParser parser(NBulk::MakeAccumulatorFactory(printer), 3);
 
     const std::string input =
         R"(cmd1

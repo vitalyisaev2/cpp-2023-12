@@ -1,6 +1,7 @@
 #include "printer.hpp"
 #include "event.hpp"
 
+#include <cassert>
 #include <chrono>
 #include <fstream>
 #include <iostream>
