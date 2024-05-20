@@ -19,7 +19,11 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install build dependencies
-      run: sudo apt-get install cmake libgtest-dev libboost-filesystem-dev libboost-log-dev libboost-system-dev libboost-regex-dev libboost-program-options-dev libssl-dev
+      run: |
+        sudo apt-get install \
+          cmake clang libgtest-dev \
+          libboost-filesystem-dev libboost-program-options-dev libboost-regex1.74-dev \
+          libboost-system-dev libboost-log-dev libssl-dev libasio-dev
 
     - name: Build and test
       run: |
@@ -62,5 +66,6 @@ jobs:
           ${{github.workspace}}/packages/bulk-0.0.${{github.run_number}}-Linux.deb
           ${{github.workspace}}/packages/bayan-0.0.${{github.run_number}}-Linux.deb
           ${{github.workspace}}/packages/async-0.0.${{github.run_number}}-Linux.deb
+          ${{github.workspace}}/packages/bulk-server-0.0.${{github.run_number}}-Linux.deb
         token: ${{secrets.RELEASE_TOKEN}}
         tag_name: 0.0.${{github.run_number}}
