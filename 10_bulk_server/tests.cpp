@@ -9,7 +9,7 @@ void FillParser(async::handle_t& handle, const std::string& input) {
     std::stringstream ss(input);
 
     while (std::getline(ss, target)) {
-        async::receive(handle, target.data(), target.size());
+        async::receive(handle, target);
     }
 }
 

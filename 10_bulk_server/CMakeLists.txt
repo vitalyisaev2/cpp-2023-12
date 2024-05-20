@@ -5,7 +5,7 @@ enable_testing()
 add_subdirectory(bulk)
 add_subdirectory(utils)
 
-add_library(async SHARED async.cpp async.hpp)
+add_library(async STATIC async.cpp async.hpp) # No much sense to use SHARED in this task
 set_target_properties(async PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
@@ -26,8 +26,8 @@ set_target_properties(bulk_server PROPERTIES
 
 install(TARGETS bulk_server DESTINATION bin)
 
-# set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
-# include(package)
-# add_package("async" "09")
-# include(testing)
-# run_tests(async)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
+include(package)
+add_package("bulk_server" "10")
+include(testing)
+run_tests(async)

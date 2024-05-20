@@ -36,7 +36,7 @@ namespace NBulk {
         return ThreadPool->Enqueue([commands = commands](
                                        NUtils::TThreadPool<IPrinter::TResult>::TThreadId threadId) -> TResult {
             const auto& startTime = commands->front().RegistrationTime;
-            auto secondsUTC = std::chrono::duration_cast<std::chrono::seconds>(startTime.time_since_epoch()).count();
+            auto secondsUTC = std::chrono::duration_cast<std::chrono::microseconds>(startTime.time_since_epoch()).count();
 
             auto filenameLocal =
                 std::filesystem::path("bulk" + std::to_string(secondsUTC) + "_" + std::to_string(threadId) + ".log");

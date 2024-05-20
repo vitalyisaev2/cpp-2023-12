@@ -93,7 +93,7 @@ namespace async {
         return reinterpret_cast<handle_t>(TParserController::GetInstance()->MakeParser(bulk));
     }
 
-    void receive(handle_t handle, std::string&& input) {
+    void receive(handle_t handle, std::string input) {
         TParserController::GetInstance()->HandleLine(reinterpret_cast<TParserController::TParserId>(handle),
                                                      std::move(input));
     }
