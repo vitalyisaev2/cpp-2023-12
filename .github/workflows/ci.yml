@@ -66,6 +66,6 @@ jobs:
           ${{github.workspace}}/packages/bulk-0.0.${{github.run_number}}-Linux.deb
           ${{github.workspace}}/packages/bayan-0.0.${{github.run_number}}-Linux.deb
           ${{github.workspace}}/packages/async-0.0.${{github.run_number}}-Linux.deb
-          ${{github.workspace}}/packages/bulk-server-0.0.${{github.run_number}}-Linux.deb
+          ${{github.workspace}}/packages/bulk_server-0.0.${{github.run_number}}-Linux.deb
         token: ${{secrets.RELEASE_TOKEN}}
         tag_name: 0.0.${{github.run_number}}
