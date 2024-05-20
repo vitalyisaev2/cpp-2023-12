@@ -22,7 +22,7 @@ jobs:
       run: |
         sudo apt-get install \
           cmake clang libgtest-dev \
-          libboost-filesystem-dev libboost-program-options-dev libboost-regex1.74-dev 
+          libboost-filesystem-dev libboost-program-options-dev libboost-regex1.74-dev \
           libboost-system-dev libboost-log-dev libssl-dev libasio-dev
 
     - name: Build and test
