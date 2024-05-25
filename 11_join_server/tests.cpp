@@ -38,7 +38,18 @@ TEST(TRow, Test) {
     ASSERT_EQ(row.GetVersion(31), rowDataItems[2]);
 }
 
-TEST(ThreadPool, Test) {
+TEST(TTable, Test) {
+    TTable table;
+    TRowData rowData({10, "a"});
+
+    table.InsertRow(1, rowData);
+    ASSERT_EQ(table.GetRow(1, 1), std::nullopt);
+    ASSERT_EQ(table.GetRow(10, 1), rowData);
+    ASSERT_EQ(table.GetRow(20, 1), rowData);
+    ASSERT_EQ(table.GetRow(2, 2), std::nullopt);
+}
+
+TEST(TThreadPool, Test) {
     TThreadPool<int> tp(2);
     std::array<std::future<int>, 2> futures;
 

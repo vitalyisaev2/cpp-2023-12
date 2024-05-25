@@ -85,17 +85,17 @@ namespace NDatabase {
     };
 
     class TTable {
+        using TRowId = std::size_t;
+
     public:
         using TPtr = std::unique_ptr<TTable>;
 
         void InsertRow(TTxId txId, const TRowData& rowData);
+        std::optional<TRowData> GetRow(TTxId txId, TRowId rowId);
         void Iterate(TTxId txId, TRowHandler handler);
-        TRowData GetRow(TTxId txId);
         void Truncate(TTxId txId);
 
     private:
-        using TRowId = std::size_t;
-
         // This is the simpliest kind of index. It maps primary key into the row.
         std::map<TRowId, TRow> Rows_;
 
