@@ -23,6 +23,10 @@ namespace NDatabase {
     public:
         TRowData() = delete;
 
+        explicit TRowData(const std::vector<TValue> values)
+            : Values_(std::move(values)) {
+        }
+
         explicit TRowData(std::size_t capacity) {
             Values_.reserve(capacity);
         }
@@ -44,13 +48,15 @@ namespace NDatabase {
             throw std::runtime_error(ss.str());
         }
 
+        bool operator==(const TRowData& other) const;
+
     private:
         std::vector<TValue> Values_;
     };
 
     using TRowHandler = std::function<void(const TRowData&)>;
 
-    class TRowVersion {
+    struct TRowVersion {
         // Every row version gets a transaction id assigned
         // at the moment of row version creation.
         TTxId TxId_;
@@ -58,12 +64,16 @@ namespace NDatabase {
         // The row data itself.
         // If it's empty, that means that the row was removed by the transcation.
         std::optional<TRowData> RowData_;
+
+        bool operator==(const TRowVersion& other) const {
+            return std::tie(TxId_, RowData_) == std::tie(other.TxId_, other.RowData_);
+        }
     };
 
     class TRow {
     public:
-        TRowVersion GetVersion(TTxId txId) const;
-        void AddVesion(TTxId txId, const TRowData& rowData) const;
+        std::optional<TRowData> GetVersion(TTxId txId);
+        void AddVesion(TTxId txId, TRowData rowData);
 
     private:
         // We keep several versions of the same row for the sake of MVCC
