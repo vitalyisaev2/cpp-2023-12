@@ -1,10 +1,9 @@
-#include "table.hpp"
-#include <boost/smart_ptr/shared_ptr.hpp>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
-#include <sstream>
-#include <stdexcept>
+#include <boost/assert.hpp>
+
+#include "table.hpp"
 
 namespace NDatabase {
     bool TRowData::operator==(const TRowData& other) const {
@@ -41,10 +40,12 @@ namespace NDatabase {
         }
 
         // TODO: instead of copying smart pointers
-        return *lastValid->RowData_;
+        return lastValid->RowData_;
     }
 
-    void TRow::AddVesion(TTxId txId, TRowData rowData) {
+    void TRow::AddVesion(TTxId txId, std::optional<TRowData> rowData) {
+        auto t = rowData.has_value() ? rowData->Get<int>(0) : -1;
+
         std::unique_lock lock{Mutex};
 
         if (Versions_.empty()) {
@@ -84,14 +85,28 @@ namespace NDatabase {
 
         auto it = Rows_.find(rowId);
         if (it == Rows_.end()) {
-            std::stringstream ss;
-            ss << "Cannot find row id " << rowId;
-            throw std::runtime_error(ss.str());
+            return std::nullopt;
         }
 
         return it->second.GetVersion(txId);
     }
 
-    // void Iterate(TTxId txId, TRowHandler handler);
-    // void Truncate(TTxId txId);
+    void TTable::Iterate(TTxId txId, TRowHandler handler) {
+        // not possible to add new rows, other transactions can only read and modify existing rows
+        std::shared_lock lock{Mutex_};
+
+        for (auto& [k, v] : Rows_) {
+            handler(k, v.GetVersion(txId));
+        }
+    }
+
+    void TTable::Truncate(TTxId txId) {
+        // Table truncation is implemented via appending empty version to each row;
+        // there's no need to lock parallel transactions.
+        std::shared_lock lock{Mutex_};
+
+        for (auto& [k, v] : Rows_) {
+            v.AddVesion(txId, std::nullopt);
+        }
+    }
 } //namespace NDatabase

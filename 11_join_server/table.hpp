@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <list>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <variant>
 #include <vector>
@@ -23,7 +23,7 @@ namespace NDatabase {
     public:
         TRowData() = delete;
 
-        explicit TRowData(const std::vector<TValue> values)
+        explicit TRowData(std::vector<TValue> values)
             : Values_(std::move(values)) {
         }
 
@@ -54,8 +54,6 @@ namespace NDatabase {
         std::vector<TValue> Values_;
     };
 
-    using TRowHandler = std::function<void(const TRowData&)>;
-
     struct TRowVersion {
         // Every row version gets a transaction id assigned
         // at the moment of row version creation.
@@ -73,7 +71,7 @@ namespace NDatabase {
     class TRow {
     public:
         std::optional<TRowData> GetVersion(TTxId txId);
-        void AddVesion(TTxId txId, TRowData rowData);
+        void AddVesion(TTxId txId, std::optional<TRowData> rowData);
 
     private:
         // We keep several versions of the same row for the sake of MVCC
@@ -84,9 +82,10 @@ namespace NDatabase {
         std::shared_mutex Mutex;
     };
 
-    class TTable {
-        using TRowId = std::size_t;
+    using TRowId = std::size_t;
+    using TRowHandler = std::function<void(TRowId, std::optional<TRowData>)>;
 
+    class TTable {
     public:
         using TPtr = std::unique_ptr<TTable>;
 
@@ -97,7 +96,7 @@ namespace NDatabase {
 
     private:
         // This is the simpliest kind of index. It maps primary key into the row.
-        std::map<TRowId, TRow> Rows_;
+        std::unordered_map<TRowId, TRow> Rows_;
 
         // Mutex synchronizes access to the rows;
         std::shared_mutex Mutex_;

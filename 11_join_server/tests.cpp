@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
+#include <optional>
 #include <stdexcept>
+#include <tuple>
 #include <vector>
 
 #include "table.hpp"
@@ -8,7 +10,7 @@
 using namespace NDatabase;
 
 TEST(TRowData, Test) {
-    TRowData rowData(2); 
+    TRowData rowData(2);
     rowData.Append(int(1));
     rowData.Append(std::string("qwerty12345"));
 
@@ -24,7 +26,7 @@ TEST(TRow, Test) {
         TRowData(std::vector<TValue>{1, "a"}),
         TRowData(std::vector<TValue>{2, "b"}),
         TRowData(std::vector<TValue>{3, "c"}),
-    }; 
+    };
 
     TRow row;
     row.AddVesion(10, rowDataItems[0]);
@@ -40,13 +42,55 @@ TEST(TRow, Test) {
 
 TEST(TTable, Test) {
     TTable table;
-    TRowData rowData({10, "a"});
+    TRowData rowData1({1, "a"});
 
-    table.InsertRow(1, rowData);
+    // Insert several rows in some order
+
+    table.InsertRow(2, rowData1);
     ASSERT_EQ(table.GetRow(1, 1), std::nullopt);
-    ASSERT_EQ(table.GetRow(10, 1), rowData);
-    ASSERT_EQ(table.GetRow(20, 1), rowData);
+    ASSERT_EQ(table.GetRow(10, 1), rowData1);
+    ASSERT_EQ(table.GetRow(20, 1), rowData1);
     ASSERT_EQ(table.GetRow(2, 2), std::nullopt);
+
+    TRowData rowData2({2, "b"});
+    TRowData rowData3({3, "c"});
+    table.InsertRow(30, rowData3);
+    table.InsertRow(31, rowData2);
+
+    // Iterate over accepted rows - everything's fine
+    std::vector<std::tuple<TRowId, std::optional<TRowData>>> accepted;
+    table.Iterate(32, [&accepted](TRowId rowId, std::optional<TRowData> rowData) {
+        accepted.push_back(std::make_tuple(rowId, rowData));
+    });
+    std::sort(accepted.begin(), accepted.end(),
+              [](const auto& x1, const auto& x2) { return std::get<0>(x1) < std::get<0>(x2); });
+
+    ASSERT_EQ(accepted.size(), 3);
+
+    auto expected = std::make_tuple<TRowId, std::optional<TRowData>>(1, rowData1);
+    ASSERT_EQ(accepted[0], expected);
+    expected = std::make_tuple<TRowId, std::optional<TRowData>>(2, rowData2);
+    ASSERT_EQ(accepted[1], expected);
+    expected = std::make_tuple<TRowId, std::optional<TRowData>>(3, rowData3);
+    ASSERT_EQ(accepted[2], expected);
+
+    // Now we truncate the table
+    table.Truncate(40);
+
+    // Every transaction occured after the truncation sees just empty rows
+    accepted.clear();
+    table.Iterate(41, [&accepted](TRowId rowId, std::optional<TRowData> rowData) {
+        accepted.push_back(std::make_tuple(rowId, rowData));
+    });
+    std::sort(accepted.begin(), accepted.end(),
+              [](const auto& x1, const auto& x2) { return std::get<0>(x1) < std::get<0>(x2); });
+
+    expected = std::make_tuple<TRowId, std::optional<TRowData>>(1, std::nullopt);
+    ASSERT_EQ(accepted[0], expected);
+    expected = std::make_tuple<TRowId, std::optional<TRowData>>(2, std::nullopt);
+    ASSERT_EQ(accepted[1], expected);
+    expected = std::make_tuple<TRowId, std::optional<TRowData>>(3, std::nullopt);
+    ASSERT_EQ(accepted[2], expected);
 }
 
 TEST(TThreadPool, Test) {
