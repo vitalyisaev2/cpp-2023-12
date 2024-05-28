@@ -101,4 +101,6 @@ namespace NDatabase {
         // Mutex synchronizes access to the rows;
         std::shared_mutex Mutex_;
     };
+
+    TTable::TPtr MakeTable();
 } //namespace NDatabase

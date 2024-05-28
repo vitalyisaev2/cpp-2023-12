@@ -1,21 +1,23 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <condition_variable>
-
 
 namespace NDatabase {
     template <class T>
     class TThreadSafeQueue {
     public:
-        void push(T value) {
+        using TPtr = std::shared_ptr<TThreadSafeQueue<T>>;
+
+        void Push(T value) {
             std::unique_lock<std::mutex> lock{Mutex};
             Queue.push(std::move(value));
             ConditionVariable.notify_one();
         }
 
-        T pop() {
+        T Pop() {
             std::unique_lock<std::mutex> lock{Mutex};
             ConditionVariable.wait(lock, [&] { return !Queue.empty(); });
             T val = std::move(Queue.front());
@@ -28,4 +30,9 @@ namespace NDatabase {
         std::condition_variable ConditionVariable;
         std::mutex Mutex;
     };
-}
+
+    template <class T>
+    typename TThreadSafeQueue<T>::TPtr MakeThreadSafeQueue() {
+        return std::make_shared<TThreadSafeQueue<T>>();
+    }
+} //namespace NDatabase

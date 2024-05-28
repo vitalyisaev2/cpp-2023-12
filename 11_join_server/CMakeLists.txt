@@ -5,7 +5,7 @@ enable_testing()
 # add_subdirectory(bulk)
 # add_subdirectory(utils)
 
-add_library(database STATIC table.cpp) # No much sense to use SHARED in this task
+add_library(database STATIC table.cpp database.cpp) # No much sense to use SHARED in this task
 set_target_properties(database PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON

@@ -30,7 +30,7 @@ namespace NDatabase {
         std::thread MakeThread(std::size_t threadId) {
             return std::thread{[&queue = this->Queue, threadId] {
                 while (true) {
-                    auto task = queue.pop();
+                    auto task = queue.Pop();
                     switch (task.Kind) {
                         case TTask::EKind::Execute:
                             task.Promise.set_value(task.Execute(threadId));
@@ -55,14 +55,14 @@ namespace NDatabase {
         std::future<T> Enqueue(std::function<T(TThreadId)> execution) {
             std::promise<T> promise;
             auto future = promise.get_future();
-            Queue.push(
+            Queue.Push(
                 TTask{.Kind = TTask::EKind::Execute, .Execute = std::move(execution), .Promise = std::move(promise)});
             return future;
         }
 
         ~TThreadPool() {
             for (std::size_t i = 0; i < Capacity; i++) {
-                Queue.push(TTask{.Kind = TTask::EKind::Terminate});
+                Queue.Push(TTask{.Kind = TTask::EKind::Terminate});
             }
 
             for (std::size_t i = 0; i < Capacity; i++) {

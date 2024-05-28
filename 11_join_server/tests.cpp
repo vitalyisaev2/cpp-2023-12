@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 #include <optional>
 #include <stdexcept>
+#include <thread>
 #include <tuple>
 #include <vector>
 
+#include "database.hpp"
 #include "table.hpp"
 #include "thread_pool.hpp"
 
@@ -91,6 +93,35 @@ TEST(TTable, Test) {
     ASSERT_EQ(accepted[1], expected);
     expected = std::make_tuple<TRowId, std::optional<TRowData>>(3, std::nullopt);
     ASSERT_EQ(accepted[2], expected);
+}
+
+TEST(TDatabase, Test) {
+    TDatabase database;
+
+    database.Insert("table1", TRowData({1, "a"}));
+    database.Insert("table1", TRowData({2, "b"}));
+    database.Insert("table1", TRowData({3, "c"}));
+
+    auto queue = MakeResultQueue();
+
+    std::thread t(std::bind(&TDatabase::Select, &database, "table1", queue));
+
+    std::vector<TRowData> accepted;
+    for (std::size_t i = 0; i < 3; i++) {
+        auto val = queue->Pop();
+        ASSERT_TRUE(val.has_value());
+        accepted.emplace_back(std::move(*val));
+    }
+
+    std::sort(accepted.begin(), accepted.end(), [](const TRowData& lhs, const TRowData& rhs) {
+        return lhs.Get<int>(0) < rhs.Get<int>(0);
+    });
+
+    ASSERT_EQ(accepted[0], TRowData({1, "a"}));
+    ASSERT_EQ(accepted[1], TRowData({2, "b"}));
+    ASSERT_EQ(accepted[2], TRowData({3, "c"}));
+
+    t.join();
 }
 
 TEST(TThreadPool, Test) {

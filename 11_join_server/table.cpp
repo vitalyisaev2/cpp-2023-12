@@ -1,3 +1,4 @@
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
@@ -108,5 +109,9 @@ namespace NDatabase {
         for (auto& [k, v] : Rows_) {
             v.AddVesion(txId, std::nullopt);
         }
+    }
+
+    TTable::TPtr MakeTable() {
+        return std::make_unique<TTable>();
     }
 } //namespace NDatabase
