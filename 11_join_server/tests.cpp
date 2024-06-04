@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <thread>
 #include <tuple>
+#include <variant>
 #include <vector>
 
 #include "database.hpp"
@@ -96,26 +97,34 @@ TEST(TTable, Test) {
 }
 
 TEST(TDatabase, Test) {
-    TDatabase database;
+    auto database = TDatabase::Create();
 
-    database.Insert("table1", TRowData({1, "a"}));
-    database.Insert("table1", TRowData({2, "b"}));
-    database.Insert("table1", TRowData({3, "c"}));
+    ASSERT_EQ(database->Insert("table1", TRowData({1, "a"})).Succeeded, true);
+    ASSERT_EQ(database->Insert("table1", TRowData({2, "b"})).Succeeded, true);
+    ASSERT_EQ(database->Insert("table1", TRowData({3, "c"})).Succeeded, true);
 
+    // call select asynchronously
     auto queue = MakeResultQueue();
+    std::thread t([&](){
+        ASSERT_TRUE(database->Select("table1", queue).Succeeded);
+    });
 
-    std::thread t(std::bind(&TDatabase::Select, &database, "table1", queue));
-
+    // first three messages contain data
     std::vector<TRowData> accepted;
     for (std::size_t i = 0; i < 3; i++) {
         auto val = queue->Pop();
-        ASSERT_TRUE(val.has_value());
-        accepted.emplace_back(std::move(*val));
+        ASSERT_TRUE(std::holds_alternative<std::optional<NDatabase::TRowData>>(val));
+        auto rowData = std::get<std::optional<NDatabase::TRowData>>(val);
+        ASSERT_TRUE(rowData.has_value());
+        accepted.emplace_back(std::move(*rowData));
     }
 
-    std::sort(accepted.begin(), accepted.end(), [](const TRowData& lhs, const TRowData& rhs) {
-        return lhs.Get<int>(0) < rhs.Get<int>(0);
-    });
+    // the last one contains the end mark
+    auto val = queue->Pop();
+    ASSERT_TRUE(std::holds_alternative<NDatabase::TEndOfTable>(val));
+
+    std::sort(accepted.begin(), accepted.end(),
+              [](const TRowData& lhs, const TRowData& rhs) { return lhs.Get<int>(0) < rhs.Get<int>(0); });
 
     ASSERT_EQ(accepted[0], TRowData({1, "a"}));
     ASSERT_EQ(accepted[1], TRowData({2, "b"}));
