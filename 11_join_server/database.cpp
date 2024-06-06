@@ -4,7 +4,6 @@
 
 #include "database.hpp"
 #include "table.hpp"
-#include "thread_pool.hpp"
 #include "thread_safe_queue.hpp"
 
 namespace NDatabase {
