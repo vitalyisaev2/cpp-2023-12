@@ -10,10 +10,13 @@
 
 namespace NDatabase {
 
-    template <class T>
     class TThreadPool {
     public:
         using TPtr = std::shared_ptr<TThreadPool>;
+
+        static TThreadPool::TPtr Create(std::size_t capacity) {
+            return std::make_shared<TThreadPool>(capacity);
+        }
 
         using TThreadId = std::size_t;
 
@@ -23,8 +26,8 @@ namespace NDatabase {
 
             EKind Kind;
 
-            std::function<T(TThreadId)> Execute;
-            std::promise<T> Promise;
+            std::function<void(TThreadId)> Execute;
+            std::promise<void> Promise;
         };
 
         std::thread MakeThread(std::size_t threadId) {
@@ -33,7 +36,8 @@ namespace NDatabase {
                     auto task = queue.Pop();
                     switch (task.Kind) {
                         case TTask::EKind::Execute:
-                            task.Promise.set_value(task.Execute(threadId));
+                            task.Execute(threadId);
+                            task.Promise.set_value();
                             break;
                         case TTask::EKind::Terminate:
                             return;
@@ -52,8 +56,8 @@ namespace NDatabase {
             }
         };
 
-        std::future<T> Enqueue(std::function<T(TThreadId)> execution) {
-            std::promise<T> promise;
+        std::future<void> Enqueue(std::function<void(TThreadId)> execution) {
+            std::promise<void> promise;
             auto future = promise.get_future();
             Queue.Push(
                 TTask{.Kind = TTask::EKind::Execute, .Execute = std::move(execution), .Promise = std::move(promise)});
@@ -75,9 +79,4 @@ namespace NDatabase {
         TThreadSafeQueue<TTask> Queue;
         std::vector<std::thread> Threads;
     };
-
-    template <class T>
-    typename TThreadPool<T>::TPtr MakeThreadPool(std::size_t capacity) {
-        return std::make_shared<TThreadPool<T>>(capacity);
-    }
 } //namespace NDatabase

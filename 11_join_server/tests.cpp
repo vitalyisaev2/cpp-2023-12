@@ -1,10 +1,12 @@
-#include <gtest/gtest.h>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
-#include <thread>
 #include <tuple>
+#include <unordered_set>
 #include <variant>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include "database.hpp"
 #include "table.hpp"
@@ -96,32 +98,30 @@ TEST(TTable, Test) {
     ASSERT_EQ(accepted[2], expected);
 }
 
+void AssertSuccessOperationStatus(TResultQueue::TPtr queue) {
+    ASSERT_TRUE(std::get<TOperationStatus>(queue->Pop()).Succeeded_);
+}
+
 TEST(TDatabase, Test) {
     auto database = TDatabase::Create();
+    AssertSuccessOperationStatus(database->Insert("table1", TRowData({1, "a"})));
+    AssertSuccessOperationStatus(database->Insert("table1", TRowData({2, "b"})));
+    AssertSuccessOperationStatus(database->Insert("table1", TRowData({3, "c"})));
 
-    ASSERT_EQ(database->Insert("table1", TRowData({1, "a"})).Succeeded, true);
-    ASSERT_EQ(database->Insert("table1", TRowData({2, "b"})).Succeeded, true);
-    ASSERT_EQ(database->Insert("table1", TRowData({3, "c"})).Succeeded, true);
-
-    // call select asynchronously
-    auto queue = MakeResultQueue();
-    std::thread t([&](){
-        ASSERT_TRUE(database->Select("table1", queue).Succeeded);
-    });
+    auto selectQueue = database->Select("table1");
 
     // first three messages contain data
     std::vector<TRowData> accepted;
     for (std::size_t i = 0; i < 3; i++) {
-        auto val = queue->Pop();
+        auto val = selectQueue->Pop();
         ASSERT_TRUE(std::holds_alternative<std::optional<NDatabase::TRowData>>(val));
         auto rowData = std::get<std::optional<NDatabase::TRowData>>(val);
         ASSERT_TRUE(rowData.has_value());
         accepted.emplace_back(std::move(*rowData));
     }
 
-    // the last one contains the end mark
-    auto val = queue->Pop();
-    ASSERT_TRUE(std::holds_alternative<NDatabase::TEndOfTable>(val));
+    // the last message contains the final status of an operation
+    AssertSuccessOperationStatus(selectQueue);
 
     std::sort(accepted.begin(), accepted.end(),
               [](const TRowData& lhs, const TRowData& rhs) { return lhs.Get<int>(0) < rhs.Get<int>(0); });
@@ -129,24 +129,29 @@ TEST(TDatabase, Test) {
     ASSERT_EQ(accepted[0], TRowData({1, "a"}));
     ASSERT_EQ(accepted[1], TRowData({2, "b"}));
     ASSERT_EQ(accepted[2], TRowData({3, "c"}));
-
-    t.join();
 }
 
 TEST(TThreadPool, Test) {
-    TThreadPool<int> tp(2);
-    std::array<std::future<int>, 2> futures;
+    TThreadPool tp(2);
+    std::array<std::future<void>, 2> futures;
+    std::unordered_set<int> result;
+    std::mutex mutex;
 
-    futures[0] = tp.Enqueue([](TThreadPool<int>::TThreadId threadId) {
-        std::cout << "threadId = " << threadId << ", " << "task1" << std::endl;
-        return 0;
+    futures[0] = tp.Enqueue([&](TThreadPool::TThreadId threadId) {
+        std::unique_lock lock(mutex);
+        result.emplace(0);
     });
 
-    futures[1] = tp.Enqueue([](TThreadPool<int>::TThreadId threadId) {
-        std::cout << "threadId = " << threadId << ", " << "task2" << std::endl;
-        return 1;
+    futures[1] = tp.Enqueue([&](TThreadPool::TThreadId threadId) {
+        std::unique_lock lock(mutex);
+        result.emplace(1);
     });
 
-    ASSERT_EQ(futures[0].get(), 0);
-    ASSERT_EQ(futures[1].get(), 1);
+    for (auto& f: futures) {
+        f.get();
+    }
+
+    ASSERT_EQ(futures.size(), 2);
+    ASSERT_TRUE(result.contains(0));
+    ASSERT_TRUE(result.contains(1));
 }

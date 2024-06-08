@@ -16,80 +16,92 @@ namespace NDatabase {
         return std::shared_ptr<TDatabase>(new TDatabase());
     };
 
-    TOperationStatus TDatabase::Insert(const std::string& tableName, TRowData&& rowData) {
-        return ThreadPool_
-            ->Enqueue([self = shared_from_this(), tableName = tableName,
-                       rowData = std::move(rowData)](std::size_t) -> TOperationStatus {
-                {
-                    // check if table with the requested name exists
-                    std::shared_lock lock{self->Mutex_};
-                    auto it = self->Tables_.find(tableName);
-                    if (it != self->Tables_.end()) {
-                        auto txId = ++self->TxCounter_;
-                        it->second->InsertRow(txId, std::move(rowData));
-                        return TOperationStatus::Success();
-                    }
-                }
+    TResultQueue::TPtr TDatabase::Insert(const std::string& tableName, TRowData&& rowData) {
+        auto queue = MakeResultQueue();
 
-                {
-                    // re-check and create table if necessary
-                    std::unique_lock lock{self->Mutex_};
+        ThreadPool_->Enqueue([self = shared_from_this(), tableName = tableName, rowData = std::move(rowData),
+                              queue = queue](std::size_t) -> void {
+            {
+                // check if table with the requested name exists
+                std::shared_lock lock{self->Mutex_};
+                auto it = self->Tables_.find(tableName);
+                if (it != self->Tables_.end()) {
                     auto txId = ++self->TxCounter_;
-
-                    auto it = self->Tables_.find(tableName);
-                    if (it != self->Tables_.end()) {
-                        it->second->InsertRow(txId, std::move(rowData));
-                        return TOperationStatus::Success();
-                    }
-
-                    auto table = MakeTable();
-                    table->InsertRow(txId, std::move(rowData));
-
-                    self->Tables_.emplace(tableName, std::move(table));
-                    return TOperationStatus::Success();
+                    it->second->InsertRow(txId, std::move(rowData));
+                    queue->Push(TOperationStatus::Success());
+                    return;
                 }
-            })
-            .get();
+            }
+
+            {
+                // re-check and create table if necessary
+                std::unique_lock lock{self->Mutex_};
+                auto txId = ++self->TxCounter_;
+
+                auto it = self->Tables_.find(tableName);
+                if (it != self->Tables_.end()) {
+                    it->second->InsertRow(txId, std::move(rowData));
+                    queue->Push(TOperationStatus::Success());
+                    return;
+                }
+
+                auto table = MakeTable();
+                table->InsertRow(txId, std::move(rowData));
+
+                self->Tables_.emplace(tableName, std::move(table));
+                queue->Push(TOperationStatus::Success());
+                return;
+            }
+        });
+
+        return queue;
     }
 
-    TOperationStatus TDatabase::Select(const std::string& tableName, TResultQueue::TPtr queue) {
-        return ThreadPool_
-            ->Enqueue([self = shared_from_this(), tableName = tableName,
-                       queue = std::move(queue)](std::size_t) -> TOperationStatus {
-                std::shared_lock lock{self->Mutex_};
-                auto it = self->Tables_.find(tableName);
-                if (it == self->Tables_.cend()) {
-                    std::stringstream ss;
-                    ss << "Table with name '" << tableName << "' does not exist";
-                    return TOperationStatus{.Succeeded = false, .Message = std::move(ss.str())};
-                }
+    TResultQueue::TPtr TDatabase::Select(const std::string& tableName) {
+        auto queue = MakeResultQueue();
 
-                auto txId = ++self->TxCounter_;
-                it->second->Iterate(
-                    txId, [&queue](TRowId rowId, std::optional<TRowData> rowData) { queue->Push(std::move(rowData)); });
+        ThreadPool_->Enqueue([self = shared_from_this(), tableName = tableName, queue = queue](std::size_t) -> void {
+            std::shared_lock lock{self->Mutex_};
+            auto it = self->Tables_.find(tableName);
+            if (it == self->Tables_.cend()) {
+                std::stringstream ss;
+                ss << "Table with name '" << tableName << "' does not exist";
+                queue->Push(TOperationStatus::Error(ss.str()));
+                return;
+            }
 
-                queue->Push(TEndOfTable{});
-                return TOperationStatus::Success();
-            })
-            .get();
+            auto txId = ++self->TxCounter_;
+            it->second->Iterate(
+                txId, [&queue](TRowId rowId, std::optional<TRowData> rowData) { queue->Push(std::move(rowData)); });
+
+            queue->Push(TOperationStatus::Success());
+            return;
+        });
+
+        return queue;
     }
 
-    TOperationStatus TDatabase::Truncate(const std::string& tableName) {
-        return ThreadPool_
-            ->Enqueue([self = shared_from_this(), tableName = tableName](std::size_t) -> TOperationStatus {
-                std::shared_lock lock{self->Mutex_};
-                auto it = self->Tables_.find(tableName);
-                if (it == self->Tables_.cend()) {
-                    std::stringstream ss;
-                    ss << "Table with name '" << tableName << "' does not exist";
-                    return TOperationStatus{.Succeeded = false, .Message = std::move(ss.str())};
-                }
+    TResultQueue::TPtr TDatabase::Truncate(const std::string& tableName) {
+        auto queue = MakeResultQueue();
 
-                auto txId = ++self->TxCounter_;
-                it->second->Truncate(txId);
-                return TOperationStatus::Success();
-            })
-            .get();
+        ThreadPool_->Enqueue([self = shared_from_this(), tableName = tableName, queue = queue](std::size_t) -> void {
+            std::shared_lock lock{self->Mutex_};
+            auto it = self->Tables_.find(tableName);
+            if (it == self->Tables_.cend()) {
+                std::stringstream ss;
+                ss << "Table with name '" << tableName << "' does not exist";
+                queue->Push(TOperationStatus::Error(ss.str()));
+                return;
+            }
+
+            auto txId = ++self->TxCounter_;
+            it->second->Truncate(txId);
+
+            queue->Push(TOperationStatus::Success());
+            return;
+        });
+
+        return queue;
     }
 
 } //namespace NDatabase
