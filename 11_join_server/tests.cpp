@@ -8,7 +8,9 @@
 
 #include <gtest/gtest.h>
 
+#include "commands.hpp"
 #include "database.hpp"
+#include "parser.hpp"
 #include "table.hpp"
 #include "thread_pool.hpp"
 
@@ -98,8 +100,8 @@ TEST(TTable, Test) {
     ASSERT_EQ(accepted[2], expected);
 }
 
-void AssertSuccessOperationStatus(TResultQueue::TPtr queue) {
-    ASSERT_TRUE(std::get<TOperationStatus>(queue->Pop()).Succeeded_);
+void AssertSuccessOperationStatus(TDatabase::TResultQueue::TPtr queue) {
+    ASSERT_TRUE(std::get<TStatus>(queue->Pop()).Succeeded_);
 }
 
 TEST(TDatabase, Test) {
@@ -131,6 +133,31 @@ TEST(TDatabase, Test) {
     ASSERT_EQ(accepted[2], TRowData({3, "c"}));
 }
 
+TEST(TParser, InsertPositive) {
+    TParser parser;
+
+    auto result = parser.Handle("INSERT A 0 lean");
+    ASSERT_TRUE(result.Status_.Succeeded_);
+    ASSERT_TRUE(result.Cmd_);
+    ASSERT_TRUE(std::holds_alternative<TCmdInsert>(*result.Cmd_));
+
+    auto cmd  = std::get<TCmdInsert>(*result.Cmd_);
+    ASSERT_EQ(cmd.TableName_, "A");
+
+    auto& rowData = cmd.RowData_;
+    ASSERT_EQ(rowData.Get<int>(0), 0);
+    ASSERT_EQ(rowData.Get<std::string>(1), "lean");
+}
+
+TEST(TParser, InsertNegative) {
+    TParser parser;
+
+    auto result = parser.Handle("INSERT A 0");
+    ASSERT_FALSE(result.Status_.Succeeded_);
+
+    std::cout << *result.Status_.Message_ << std::endl;
+}
+
 TEST(TThreadPool, Test) {
     TThreadPool tp(2);
     std::array<std::future<void>, 2> futures;
@@ -147,7 +174,7 @@ TEST(TThreadPool, Test) {
         result.emplace(1);
     });
 
-    for (auto& f: futures) {
+    for (auto& f : futures) {
         f.get();
     }
 

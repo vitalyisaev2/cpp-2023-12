@@ -22,7 +22,7 @@ namespace NDatabase {
     }
 
     std::optional<TRowData> TRow::GetVersion(TTxId txId) {
-        std::shared_lock lock{Mutex};
+        std::shared_lock lock{Mutex_};
 
         // iterate through version list to find a version the most recent
         // for a given transaction id
@@ -47,7 +47,7 @@ namespace NDatabase {
     void TRow::AddVesion(TTxId txId, std::optional<TRowData> rowData) {
         auto t = rowData.has_value() ? rowData->Get<int>(0) : -1;
 
-        std::unique_lock lock{Mutex};
+        std::unique_lock lock{Mutex_};
 
         if (Versions_.empty()) {
             Versions_.emplace_back(TRowVersion{txId, std::move(rowData)});

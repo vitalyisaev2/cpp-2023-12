@@ -8,15 +8,7 @@
 
 namespace NDatabase {
 
-    TResultQueue::TPtr MakeResultQueue() {
-        return MakeThreadSafeQueue<TResult>();
-    };
-
-    TDatabase::TPtr TDatabase::Create() {
-        return std::shared_ptr<TDatabase>(new TDatabase());
-    };
-
-    TResultQueue::TPtr TDatabase::Insert(const std::string& tableName, TRowData&& rowData) {
+    TDatabase::TResultQueue::TPtr TDatabase::Insert(const std::string& tableName, TRowData&& rowData) {
         auto queue = MakeResultQueue();
 
         ThreadPool_->Enqueue([self = shared_from_this(), tableName = tableName, rowData = std::move(rowData),
@@ -28,7 +20,7 @@ namespace NDatabase {
                 if (it != self->Tables_.end()) {
                     auto txId = ++self->TxCounter_;
                     it->second->InsertRow(txId, std::move(rowData));
-                    queue->Push(TOperationStatus::Success());
+                    queue->Push(TStatus::Success());
                     return;
                 }
             }
@@ -41,7 +33,7 @@ namespace NDatabase {
                 auto it = self->Tables_.find(tableName);
                 if (it != self->Tables_.end()) {
                     it->second->InsertRow(txId, std::move(rowData));
-                    queue->Push(TOperationStatus::Success());
+                    queue->Push(TStatus::Success());
                     return;
                 }
 
@@ -49,7 +41,7 @@ namespace NDatabase {
                 table->InsertRow(txId, std::move(rowData));
 
                 self->Tables_.emplace(tableName, std::move(table));
-                queue->Push(TOperationStatus::Success());
+                queue->Push(TStatus::Success());
                 return;
             }
         });
@@ -57,7 +49,7 @@ namespace NDatabase {
         return queue;
     }
 
-    TResultQueue::TPtr TDatabase::Select(const std::string& tableName) {
+    TDatabase::TResultQueue::TPtr TDatabase::Select(const std::string& tableName) {
         auto queue = MakeResultQueue();
 
         ThreadPool_->Enqueue([self = shared_from_this(), tableName = tableName, queue = queue](std::size_t) -> void {
@@ -66,7 +58,7 @@ namespace NDatabase {
             if (it == self->Tables_.cend()) {
                 std::stringstream ss;
                 ss << "Table with name '" << tableName << "' does not exist";
-                queue->Push(TOperationStatus::Error(ss.str()));
+                queue->Push(TStatus::Error(ss.str()));
                 return;
             }
 
@@ -74,14 +66,14 @@ namespace NDatabase {
             it->second->Iterate(
                 txId, [&queue](TRowId rowId, std::optional<TRowData> rowData) { queue->Push(std::move(rowData)); });
 
-            queue->Push(TOperationStatus::Success());
+            queue->Push(TStatus::Success());
             return;
         });
 
         return queue;
     }
 
-    TResultQueue::TPtr TDatabase::Truncate(const std::string& tableName) {
+    TDatabase::TResultQueue::TPtr TDatabase::Truncate(const std::string& tableName) {
         auto queue = MakeResultQueue();
 
         ThreadPool_->Enqueue([self = shared_from_this(), tableName = tableName, queue = queue](std::size_t) -> void {
@@ -90,14 +82,14 @@ namespace NDatabase {
             if (it == self->Tables_.cend()) {
                 std::stringstream ss;
                 ss << "Table with name '" << tableName << "' does not exist";
-                queue->Push(TOperationStatus::Error(ss.str()));
+                queue->Push(TStatus::Error(ss.str()));
                 return;
             }
 
             auto txId = ++self->TxCounter_;
             it->second->Truncate(txId);
 
-            queue->Push(TOperationStatus::Success());
+            queue->Push(TStatus::Success());
             return;
         });
 

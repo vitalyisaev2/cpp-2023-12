@@ -79,7 +79,7 @@ namespace NDatabase {
         std::list<TRowVersion> Versions_;
 
         // Mutex synchronizes access to the list of row versions.
-        std::shared_mutex Mutex;
+        std::shared_mutex Mutex_;
     };
 
     using TRowId = std::size_t;
