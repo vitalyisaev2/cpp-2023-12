@@ -1,8 +1,10 @@
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
 #include <boost/assert.hpp>
+#include <stdexcept>
 
 #include "table.hpp"
 
@@ -19,6 +21,50 @@ namespace NDatabase {
         }
 
         return true;
+    }
+
+    std::size_t TRowData::Dump(std::string& buffer) const {
+        const auto bufSize = buffer.size();
+        std::size_t offset = 0;
+        std::size_t item = 0;
+
+        auto visitor = [&](const auto& arg) {
+            using T = std::decay_t<decltype(arg)>;
+
+            std::string added;
+
+            if constexpr (std::is_same_v<T, int>) {
+                added = std::to_string(arg);
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                added = arg;
+            } else {
+                throw std::invalid_argument("unknown type");
+            }
+
+            if (offset + added.size() > buffer.size()) {
+                throw std::runtime_error("insufficient buffer length");
+            }
+
+            for (std::size_t j = 0; j < added.size(); j++) {
+                buffer.at(offset) = added.at(j);
+                offset++;
+            }
+
+            if (item != Values_.size() - 1) {
+                buffer.at(offset) = ',';
+            } else {
+                buffer.at(offset) = '\n';
+            }
+
+            offset++;
+            item++;
+        };
+
+        for (const auto& value : Values_) {
+            std::visit(visitor, value);
+        }
+
+        return offset;
     }
 
     std::optional<TRowData> TRow::GetVersion(TTxId txId) {

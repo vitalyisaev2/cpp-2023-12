@@ -50,6 +50,7 @@ namespace NDatabase {
 
         bool operator==(const TRowData& other) const;
 
+        std::size_t Dump(std::string& buffer) const;
     private:
         std::vector<TValue> Values_;
     };

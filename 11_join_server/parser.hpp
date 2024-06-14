@@ -2,6 +2,7 @@
 
 #include "database.hpp"
 #include "commands.hpp"
+#include <memory>
 
 namespace NDatabase {
 

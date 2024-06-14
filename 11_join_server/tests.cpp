@@ -26,6 +26,14 @@ TEST(TRowData, Test) {
     ASSERT_THROW(rowData.Get<int>(1), std::runtime_error);
     ASSERT_THROW(rowData.Get<std::string>(0), std::runtime_error);
     ASSERT_THROW(rowData.Get<int>(3), std::runtime_error);
+
+    std::string buffer(16, 0);
+    std::string expected("1,qwerty12345");
+    expected += '\n';
+    expected += '\0';
+    expected += '\0';
+    ASSERT_EQ(rowData.Dump(buffer), 14);
+    ASSERT_EQ(buffer, expected);
 }
 
 TEST(TRow, Test) {
@@ -106,11 +114,14 @@ void AssertSuccessOperationStatus(TDatabase::TResultQueue::TPtr queue) {
 
 TEST(TDatabase, Test) {
     auto database = TDatabase::Create();
-    AssertSuccessOperationStatus(database->Insert("table1", TRowData({1, "a"})));
-    AssertSuccessOperationStatus(database->Insert("table1", TRowData({2, "b"})));
-    AssertSuccessOperationStatus(database->Insert("table1", TRowData({3, "c"})));
+    AssertSuccessOperationStatus(
+        database->HandleCommand(TCmdInsert{.TableName_ = "table1", .RowData_ = TRowData({1, "a"})}));
+    AssertSuccessOperationStatus(
+        database->HandleCommand(TCmdInsert{.TableName_ = "table1", .RowData_ = TRowData({2, "b"})}));
+    AssertSuccessOperationStatus(
+        database->HandleCommand(TCmdInsert{.TableName_ = "table1", .RowData_ = TRowData({3, "c"})}));
 
-    auto selectQueue = database->Select("table1");
+    auto selectQueue = database->HandleCommand(TCmdSelect{.TableName_ = "table1"});
 
     // first three messages contain data
     std::vector<TRowData> accepted;
@@ -141,7 +152,7 @@ TEST(TParser, InsertPositive) {
     ASSERT_TRUE(result.Cmd_);
     ASSERT_TRUE(std::holds_alternative<TCmdInsert>(*result.Cmd_));
 
-    auto cmd  = std::get<TCmdInsert>(*result.Cmd_);
+    auto cmd = std::get<TCmdInsert>(*result.Cmd_);
     ASSERT_EQ(cmd.TableName_, "A");
 
     auto& rowData = cmd.RowData_;

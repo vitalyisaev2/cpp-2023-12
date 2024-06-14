@@ -1,12 +1,26 @@
 #include <memory>
 #include <shared_mutex>
 #include <sstream>
+#include <stdexcept>
 
 #include "database.hpp"
+#include "commands.hpp"
 #include "table.hpp"
 #include "thread_safe_queue.hpp"
 
 namespace NDatabase {
+    TDatabase::TResultQueue::TPtr TDatabase::HandleCommand(TCmd&& command) {
+        // Handle various commands
+        if (std::holds_alternative<TCmdInsert>(command)) {
+            auto cast = std::get<TCmdInsert>(command);
+            return Insert(cast.TableName_, std::move(cast.RowData_));
+        } else if (std::holds_alternative<TCmdSelect>(command)) {
+            auto cast = std::get<TCmdSelect>(command);
+            return Select(cast.TableName_);
+        } else {
+            throw std::invalid_argument("unknown command");
+        }
+    }
 
     TDatabase::TResultQueue::TPtr TDatabase::Insert(const std::string& tableName, TRowData&& rowData) {
         auto queue = MakeResultQueue();

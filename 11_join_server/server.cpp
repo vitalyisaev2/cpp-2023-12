@@ -2,16 +2,22 @@
 #include <iostream>
 #include <thread>
 #include <memory>
+#include <variant>
 #include <vector>
 
 #include "database.hpp"
+#include "parser.hpp"
+#include "status.hpp"
+#include "table.hpp"
 
 using boost::asio::ip::tcp;
 
 class Session: public std::enable_shared_from_this<Session> {
 public:
-    Session(tcp::socket socket)
-        : socket_(std::move(socket)) {
+    Session(tcp::socket socket, NDatabase::TDatabase::TPtr database)
+        : Socket_(std::move(socket))
+        , Parser_(NDatabase::TParser())
+        , Database_(std::move(database)) {
     }
 
     void start() {
@@ -21,19 +27,40 @@ public:
 private:
     void read() {
         auto self(shared_from_this());
-        socket_.async_read_some(boost::asio::buffer(data_, max_length),
+        Socket_.async_read_some(boost::asio::buffer(Data_, BufSize_),
                                 [this, self](boost::system::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                        std::cout << "Received message: " << std::string(data_, length) << std::endl;
+                                        std::cout << "Received message: " << std::string(Data_, length) << std::endl;
+
+                                        auto result = Parser_.Handle(std::string(Data_, length));
+
+                                        // Handle parser error
+                                        if (!result.Status_.Succeeded_) {
+                                            std::cout << "Parser error: " << *result.Status_.Message_ << std::endl;
+                                            return;
+                                        }
+
+                                        auto responseQueue = Database_->HandleCommand(std::move(*result.Cmd_));
                                         write(length);
+                                    } else {
+                                        std::cout << "Read error: " << ec.message() << std::endl;
                                     }
                                 });
     }
 
-    void write(std::size_t length) {
+    void write(NDatabase::TDatabase::TResultQueue::TPtr resultQueue) {
         auto self(shared_from_this());
-        std::string response = "Processed: " + std::string(data_, length);
-        boost::asio::async_write(socket_, boost::asio::buffer(response),
+
+        // obtain next item from queue
+        auto response = resultQueue->Pop();
+
+        if (std::holds_alternative<std::optional<NDatabase::TRowData>>(response)) {
+            
+        } else if (std::holds_alternative<NDatabase::TStatus>(response)) {
+
+        }
+
+        boost::asio::async_write(Socket_, boost::asio::buffer(response),
                                  [this, self](boost::system::error_code ec, std::size_t /*length*/) {
                                      if (!ec) {
                                          // Continue reading
@@ -44,9 +71,12 @@ private:
                                  });
     }
 
-    tcp::socket socket_;
-    enum { max_length = 1024 };
-    char data_[max_length];
+    tcp::socket Socket_;
+    NDatabase::TParser Parser_;
+    NDatabase::TDatabase::TPtr Database_;
+
+    static const std::size_t BufSize_ = 1024;
+    char Data_[BufSize_];
 };
 
 class Server {

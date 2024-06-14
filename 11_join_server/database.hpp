@@ -3,6 +3,7 @@
 #include <atomic>
 #include <shared_mutex>
 
+#include "commands.hpp"
 #include "table.hpp"
 #include "thread_pool.hpp"
 #include "status.hpp"
@@ -29,13 +30,15 @@ namespace NDatabase {
         TDatabase& operator=(const TDatabase&) = delete;
         TDatabase& operator=(TDatabase&&) = delete;
 
+        TResultQueue::TPtr HandleCommand(TCmd&& command);
+
+    private:
         TResultQueue::TPtr Insert(const std::string& tableName, TRowData&& rowData);
         TResultQueue::TPtr Select(const std::string& tableName);
         TResultQueue::TPtr Truncate(const std::string& tableName);
         TResultQueue::TPtr Intersection(const std::string& tableName1, const std::string& tableName2);
         TResultQueue::TPtr SymmetricDifference(const std::string& tableName1, const std::string& tableName2);
 
-    private:
         static TResultQueue::TPtr MakeResultQueue() {
             return MakeThreadSafeQueue<TDatabase::TResult>();
         };
