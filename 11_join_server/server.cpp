@@ -1,5 +1,6 @@
 #include <boost/asio.hpp>
 #include <iostream>
+#include <stdexcept>
 #include <thread>
 #include <memory>
 #include <variant>
@@ -14,7 +15,7 @@ using boost::asio::ip::tcp;
 
 class Session: public std::enable_shared_from_this<Session> {
 public:
-    Session(tcp::socket socket, NDatabase::TDatabase::TPtr database)
+    explicit Session(tcp::socket socket, NDatabase::TDatabase::TPtr database)
         : Socket_(std::move(socket))
         , Parser_(NDatabase::TParser())
         , Database_(std::move(database)) {
@@ -27,12 +28,12 @@ public:
 private:
     void read() {
         auto self(shared_from_this());
-        Socket_.async_read_some(boost::asio::buffer(Data_, BufSize_),
+        Socket_.async_read_some(boost::asio::buffer(Buffer_, BufSize_),
                                 [this, self](boost::system::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                        std::cout << "Received message: " << std::string(Data_, length) << std::endl;
+                                        std::cout << "Received message: " << std::string(Buffer_, length) << std::endl;
 
-                                        auto result = Parser_.Handle(std::string(Data_, length));
+                                        auto result = Parser_.Handle(std::string(Buffer_, length));
 
                                         // Handle parser error
                                         if (!result.Status_.Succeeded_) {
@@ -41,7 +42,7 @@ private:
                                         }
 
                                         auto responseQueue = Database_->HandleCommand(std::move(*result.Cmd_));
-                                        write(length);
+                                        write(std::move(responseQueue));
                                     } else {
                                         std::cout << "Read error: " << ec.message() << std::endl;
                                     }
@@ -51,24 +52,36 @@ private:
     void write(NDatabase::TDatabase::TResultQueue::TPtr resultQueue) {
         auto self(shared_from_this());
 
-        // obtain next item from queue
-        auto response = resultQueue->Pop();
+        // handle next item from queue
+        bool finished = false;
 
-        if (std::holds_alternative<std::optional<NDatabase::TRowData>>(response)) {
-            
-        } else if (std::holds_alternative<NDatabase::TStatus>(response)) {
+        auto visitor = [&](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
 
-        }
+            if constexpr (std::is_same_v<T, std::optional<NDatabase::TRowData>>) {
+                arg->Dump(Buffer_);
+            } else if constexpr (std::is_same_v<T, NDatabase::TStatus>) {
+                arg.Dump(Buffer_);
+                finished = true;
+            } else {
+                throw std::invalid_argument("unexpected message type");
+            }
+        };
 
-        boost::asio::async_write(Socket_, boost::asio::buffer(response),
-                                 [this, self](boost::system::error_code ec, std::size_t /*length*/) {
-                                     if (!ec) {
-                                         // Continue reading
-                                         read();
-                                     } else {
-                                         std::cerr << "Write error: " << ec.message() << std::endl;
-                                     }
-                                 });
+        std::visit(visitor, resultQueue->Pop());
+
+        boost::asio::async_write(
+            Socket_, boost::asio::buffer(Buffer_),
+            [this, self, finished, resultQueue](boost::system::error_code ec, std::size_t /*length*/) {
+                if (!ec) {
+                    // handle next message or exit
+                    if (!finished) {
+                        write(resultQueue);
+                    }
+                } else {
+                    std::cerr << "Write error: " << ec.message() << std::endl;
+                }
+            });
     }
 
     tcp::socket Socket_;
@@ -76,13 +89,14 @@ private:
     NDatabase::TDatabase::TPtr Database_;
 
     static const std::size_t BufSize_ = 1024;
-    char Data_[BufSize_];
+    std::string Buffer_;
 };
 
 class Server {
 public:
     Server(boost::asio::io_context& io_context, short port, NDatabase::TDatabase::TPtr database)
-        : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
+        : acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
+        , database(std::move(database)) {
         accept();
     }
 
@@ -90,7 +104,7 @@ private:
     void accept() {
         acceptor_.async_accept([this](boost::system::error_code ec) {
             if (!ec) {
-                std::make_shared<Session>(std::move(socket))->start();
+                std::make_shared<Session>(std::move(socket), database)->start();
             }
             accept();
         });
