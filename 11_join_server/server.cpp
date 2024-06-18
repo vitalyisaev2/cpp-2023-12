@@ -13,9 +13,11 @@
 
 using boost::asio::ip::tcp;
 
-class Session: public std::enable_shared_from_this<Session> {
+class TSession: public std::enable_shared_from_this<TSession> {
 public:
-    explicit Session(tcp::socket socket, NDatabase::TDatabase::TPtr database)
+    TSession() = delete;
+
+    TSession(tcp::socket socket, NDatabase::TDatabase::TPtr database)
         : Socket_(std::move(socket))
         , Parser_(NDatabase::TParser())
         , Database_(std::move(database)) {
@@ -92,26 +94,28 @@ private:
     std::string Buffer_;
 };
 
-class Server {
+class TServer {
 public:
-    Server(boost::asio::io_context& io_context, short port, NDatabase::TDatabase::TPtr database)
-        : acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
-        , database(std::move(database)) {
+    TServer(boost::asio::io_context& io_context, short port, NDatabase::TDatabase::TPtr database)
+        : Acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
+        , socket(io_context)
+        , Database_(std::move(database)) {
         accept();
     }
 
 private:
     void accept() {
-        acceptor_.async_accept([this](boost::system::error_code ec) {
+        Acceptor_.async_accept(socket, [this](boost::system::error_code ec) {
             if (!ec) {
-                std::make_shared<Session>(std::move(socket), database)->start();
+                std::make_shared<TSession>(std::move(socket), Database_)->start();
             }
             accept();
         });
     }
 
-    NDatabase::TDatabase::TPtr database;
-    tcp::acceptor acceptor_;
+    tcp::acceptor Acceptor_;
+    tcp::socket socket;
+    NDatabase::TDatabase::TPtr Database_;
 };
 
 int main(int argc, char* argv[]) {
@@ -126,7 +130,7 @@ int main(int argc, char* argv[]) {
         // 4 threads would be enough for this task
         int thread_count = std::thread::hardware_concurrency() < 4 ? std::thread::hardware_concurrency() : 4;
 
-        Server s(io_context, std::atoi(argv[1]), NDatabase::TDatabase::Create());
+        TServer s(io_context, std::atoi(argv[1]), NDatabase::TDatabase::Create());
 
         // Create a pool of threads to run all of the io_contexts
         std::vector<std::thread> threads;

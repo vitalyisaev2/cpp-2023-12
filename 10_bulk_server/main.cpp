@@ -65,16 +65,16 @@ class TServer {
 public:
     TServer(boost::asio::io_service& io_service, short port, std::size_t bulkSize)
         : Acceptor_(io_service, tcp::endpoint(tcp::v4(), port))
-        , Socket_(io_service)
+        , socket(io_service)
         , BulkSize_(bulkSize) {
         DoAccept();
     }
 
 private:
     void DoAccept() {
-        Acceptor_.async_accept(Socket_, [this](boost::system::error_code ec) {
+        Acceptor_.async_accept(socket, [this](boost::system::error_code ec) {
             if (!ec) {
-                std::make_shared<TSession>(std::move(Socket_), BulkSize_)->Start();
+                std::make_shared<TSession>(std::move(socket), BulkSize_)->Start();
             }
 
             DoAccept();
@@ -82,7 +82,7 @@ private:
     }
 
     tcp::acceptor Acceptor_;
-    tcp::socket Socket_;
+    tcp::socket socket;
     std::size_t BulkSize_;
 };
 

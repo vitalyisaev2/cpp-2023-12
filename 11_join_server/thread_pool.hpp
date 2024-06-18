@@ -5,6 +5,7 @@
 #include <future>
 #include <memory>
 #include <thread>
+#include <optional>
 
 #include "thread_safe_queue.hpp"
 
@@ -26,8 +27,12 @@ namespace NDatabase {
 
             EKind Kind;
 
-            std::function<void(TThreadId)> Execute;
-            std::promise<void> Promise;
+            std::optional<std::function<void(TThreadId)>> Handler;
+            std::optional<std::promise<void>> Promise;
+
+            static TTask Termination() {
+                return TTask{.Kind = EKind::Terminate, .Handler = std::nullopt, .Promise = std::nullopt};
+            }
         };
 
         std::thread MakeThread(std::size_t threadId) {
@@ -36,8 +41,8 @@ namespace NDatabase {
                     auto task = queue.Pop();
                     switch (task.Kind) {
                         case TTask::EKind::Execute:
-                            task.Execute(threadId);
-                            task.Promise.set_value();
+                            (*task.Handler)(threadId);
+                            task.Promise->set_value();
                             break;
                         case TTask::EKind::Terminate:
                             return;
@@ -60,13 +65,13 @@ namespace NDatabase {
             std::promise<void> promise;
             auto future = promise.get_future();
             Queue.Push(
-                TTask{.Kind = TTask::EKind::Execute, .Execute = std::move(execution), .Promise = std::move(promise)});
+                TTask{.Kind = TTask::EKind::Execute, .Handler = std::move(execution), .Promise = std::move(promise)});
             return future;
         }
 
         ~TThreadPool() {
             for (std::size_t i = 0; i < Capacity; i++) {
-                Queue.Push(TTask{.Kind = TTask::EKind::Terminate});
+                Queue.Push(TTask::Termination());
             }
 
             for (std::size_t i = 0; i < Capacity; i++) {
