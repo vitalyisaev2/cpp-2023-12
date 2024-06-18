@@ -23,16 +23,16 @@ public:
         , Database_(std::move(database)) {
     }
 
-    void start() {
-        read();
+    void Start() {
+        DoRead();
     }
 
 private:
-    void read() {
+    void DoRead() {
         auto self(shared_from_this());
-        Socket_.async_read_some(boost::asio::buffer(Buffer_, BufSize_),
+        Socket_.async_read_some(boost::asio::buffer(self->Buffer_),
                                 [this, self](boost::system::error_code ec, std::size_t length) {
-                                    std::cout << "read: ec=" << ec.message() << ", length=" << length << std::endl;
+                                    std::cout << "DoRead: ec=" << ec.message() << ", length=" << length << std::endl;
 
                                     if (!ec) {
                                         std::cout << "received message: '" << Buffer_ << "'" << std::endl;
@@ -41,28 +41,28 @@ private:
 
                                         // Handle parser error
                                         if (!result.Status_.Succeeded_) {
-                                            writeStatus(std::move(result.Status_));
+                                            DoWriteStatus(std::move(result.Status_));
                                             return;
                                         }
 
                                         auto responseQueue = Database_->HandleCommand(std::move(*result.Cmd_));
-                                        writeQueueMessage(std::move(responseQueue));
+                                        DoWriteQueueMessage(std::move(responseQueue));
                                     }
                                 });
     }
 
-    void writeStatus(NDatabase::TStatus&& status) {
+    void DoWriteStatus(NDatabase::TStatus&& status) {
         auto self(shared_from_this());
 
         status.Dump(Buffer_);
 
         boost::asio::async_write(
-            Socket_, boost::asio::buffer(Buffer_), [this, self](boost::system::error_code ec, std::size_t length) {
-                std::cout << "writeStatus: ec=" << ec.message() << ", length=" << length << std::endl;
+            Socket_, boost::asio::buffer(self->Buffer_), [this, self](boost::system::error_code ec, std::size_t length) {
+                std::cout << "DoWriteStatus: ec=" << ec.message() << ", length=" << length << std::endl;
             });
     }
 
-    void writeQueueMessage(NDatabase::TDatabase::TResultQueue::TPtr resultQueue) {
+    void DoWriteQueueMessage(NDatabase::TDatabase::TResultQueue::TPtr resultQueue) {
         auto self(shared_from_this());
 
         // handle next item from queue
@@ -83,15 +83,15 @@ private:
 
         std::visit(visitor, resultQueue->Pop());
 
-        boost::asio::async_write(Socket_, boost::asio::buffer(Buffer_),
+        boost::asio::async_write(Socket_, boost::asio::buffer(self->Buffer_),
                                  [this, self, finished, resultQueue](boost::system::error_code ec, std::size_t length) {
-                                     std::cout << "writeQueueMessage: ec=" << ec.message() << ", length=" << length
+                                     std::cout << "DoWriteQueueMessage: ec=" << ec.message() << ", length=" << length
                                                << std::endl;
 
                                      if (!ec) {
                                          // handle next message or exit
                                          if (!finished) {
-                                             writeQueueMessage(resultQueue);
+                                             DoWriteQueueMessage(resultQueue);
                                          }
                                      }
                                  });
@@ -118,7 +118,7 @@ private:
     void accept() {
         Acceptor_.async_accept(socket, [this](boost::system::error_code ec) {
             if (!ec) {
-                std::make_shared<TSession>(std::move(socket), Database_)->start();
+                std::make_shared<TSession>(std::move(socket), Database_)->Start();
             }
             accept();
         });

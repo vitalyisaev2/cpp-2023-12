@@ -38,19 +38,26 @@ namespace NDatabase {
 
         template <typename T>
         T Get(std::size_t position) const {
+            if (position >= Values_.size()) {
+                std::stringstream ss;
+                ss << "requested position " << position << " , but have only " << Values_.size();
+                throw std::invalid_argument(ss.str());
+            }
+
             if (std::holds_alternative<T>(Values_[position])) {
                 return std::get<T>(Values_[position]);
             }
 
             std::stringstream ss;
-            ss << "Expected " << typeid(T).name() << "for a value on a position " << position
+            ss << "Expected " << typeid(T).name() << " for a value on a position " << position
                << ", got something different";
-            throw std::runtime_error(ss.str());
+            throw std::invalid_argument(ss.str());
         }
 
         bool operator==(const TRowData& other) const;
 
         std::size_t Dump(std::string& buffer) const;
+
     private:
         std::vector<TValue> Values_;
     };

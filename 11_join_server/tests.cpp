@@ -23,9 +23,9 @@ TEST(TRowData, Test) {
 
     ASSERT_EQ(rowData.Get<int>(0), int(1));
     ASSERT_EQ(rowData.Get<std::string>(1), "qwerty12345");
-    ASSERT_THROW(rowData.Get<int>(1), std::runtime_error);
-    ASSERT_THROW(rowData.Get<std::string>(0), std::runtime_error);
-    ASSERT_THROW(rowData.Get<int>(3), std::runtime_error);
+    ASSERT_THROW(rowData.Get<int>(1), std::invalid_argument);
+    ASSERT_THROW(rowData.Get<std::string>(0), std::invalid_argument);
+    ASSERT_THROW(rowData.Get<int>(3), std::invalid_argument);
 
     std::string buffer(16, 0);
     std::string expected("1,qwerty12345");
