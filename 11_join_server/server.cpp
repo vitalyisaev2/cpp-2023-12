@@ -20,7 +20,9 @@ public:
     TSession(tcp::socket socket, NDatabase::TDatabase::TPtr database)
         : Socket_(std::move(socket))
         , Parser_(NDatabase::TParser())
-        , Database_(std::move(database)) {
+        , Database_(std::move(database)) 
+        , Buffer_(BufferSize_, '\0')
+        {
     }
 
     void Start() {
@@ -54,12 +56,13 @@ private:
     void DoWriteStatus(NDatabase::TStatus&& status) {
         auto self(shared_from_this());
 
-        status.Dump(Buffer_);
+        status.Dump(self->Buffer_);
 
-        boost::asio::async_write(
-            Socket_, boost::asio::buffer(self->Buffer_), [this, self](boost::system::error_code ec, std::size_t length) {
-                std::cout << "DoWriteStatus: ec=" << ec.message() << ", length=" << length << std::endl;
-            });
+        boost::asio::async_write(Socket_, boost::asio::buffer(self->Buffer_),
+                                 [this, self](boost::system::error_code ec, std::size_t length) {
+                                     std::cout << "DoWriteStatus: ec=" << ec.message() << ", length=" << length
+                                               << std::endl;
+                                 });
     }
 
     void DoWriteQueueMessage(NDatabase::TDatabase::TResultQueue::TPtr resultQueue) {
@@ -72,9 +75,9 @@ private:
             using T = std::decay_t<decltype(arg)>;
 
             if constexpr (std::is_same_v<T, std::optional<NDatabase::TRowData>>) {
-                arg->Dump(Buffer_);
+                arg->Dump(self->Buffer_);
             } else if constexpr (std::is_same_v<T, NDatabase::TStatus>) {
-                arg.Dump(Buffer_);
+                arg.Dump(self->Buffer_);
                 finished = true;
             } else {
                 throw std::invalid_argument("unexpected message type");
@@ -101,7 +104,7 @@ private:
     NDatabase::TParser Parser_;
     NDatabase::TDatabase::TPtr Database_;
 
-    static const std::size_t BufSize_ = 1024;
+    static const std::size_t BufferSize_ = 1024;
     std::string Buffer_;
 };
 

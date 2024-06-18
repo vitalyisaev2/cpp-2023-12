@@ -1,8 +1,7 @@
 #pragma once
 
-#include "database.hpp"
 #include "commands.hpp"
-#include <memory>
+#include "status.hpp"
 
 namespace NDatabase {
 
