@@ -13,11 +13,11 @@ namespace NDatabase {
             std::optional<TCmd> Cmd_;
         };
 
-        TResult Handle(std::string&& line) const;
+        TResult Handle(const std::string& line) const;
 
     private:
         TResult ParseInsert(std::vector<std::string>& splits) const;
         TResult ParseSelect(std::vector<std::string>& splits) const;
-        std::vector<std::string> SplitStringBySpace(std::string&& str) const;
+        std::pair<std::optional<std::vector<std::string>>, TStatus> SplitStringBySpace(const std::string& str) const;
     };
 } //namespace NDatabase

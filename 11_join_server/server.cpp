@@ -32,26 +32,37 @@ private:
         auto self(shared_from_this());
         Socket_.async_read_some(boost::asio::buffer(Buffer_, BufSize_),
                                 [this, self](boost::system::error_code ec, std::size_t length) {
-                                    if (!ec) {
-                                        std::cout << "Received message: " << std::string(Buffer_, length) << std::endl;
+                                    std::cout << "read: ec=" << ec.message() << ", length=" << length << std::endl;
 
-                                        auto result = Parser_.Handle(std::string(Buffer_, length));
+                                    if (!ec) {
+                                        std::cout << "received message: '" << Buffer_ << "'" << std::endl;
+
+                                        auto result = Parser_.Handle(Buffer_);
 
                                         // Handle parser error
                                         if (!result.Status_.Succeeded_) {
-                                            std::cout << "Parser error: " << *result.Status_.Message_ << std::endl;
+                                            writeStatus(std::move(result.Status_));
                                             return;
                                         }
 
                                         auto responseQueue = Database_->HandleCommand(std::move(*result.Cmd_));
-                                        write(std::move(responseQueue));
-                                    } else {
-                                        std::cout << "Read error: " << ec.message() << std::endl;
+                                        writeQueueMessage(std::move(responseQueue));
                                     }
                                 });
     }
 
-    void write(NDatabase::TDatabase::TResultQueue::TPtr resultQueue) {
+    void writeStatus(NDatabase::TStatus&& status) {
+        auto self(shared_from_this());
+
+        status.Dump(Buffer_);
+
+        boost::asio::async_write(
+            Socket_, boost::asio::buffer(Buffer_), [this, self](boost::system::error_code ec, std::size_t length) {
+                std::cout << "writeStatus: ec=" << ec.message() << ", length=" << length << std::endl;
+            });
+    }
+
+    void writeQueueMessage(NDatabase::TDatabase::TResultQueue::TPtr resultQueue) {
         auto self(shared_from_this());
 
         // handle next item from queue
@@ -72,18 +83,18 @@ private:
 
         std::visit(visitor, resultQueue->Pop());
 
-        boost::asio::async_write(
-            Socket_, boost::asio::buffer(Buffer_),
-            [this, self, finished, resultQueue](boost::system::error_code ec, std::size_t /*length*/) {
-                if (!ec) {
-                    // handle next message or exit
-                    if (!finished) {
-                        write(resultQueue);
-                    }
-                } else {
-                    std::cerr << "Write error: " << ec.message() << std::endl;
-                }
-            });
+        boost::asio::async_write(Socket_, boost::asio::buffer(Buffer_),
+                                 [this, self, finished, resultQueue](boost::system::error_code ec, std::size_t length) {
+                                     std::cout << "writeQueueMessage: ec=" << ec.message() << ", length=" << length
+                                               << std::endl;
+
+                                     if (!ec) {
+                                         // handle next message or exit
+                                         if (!finished) {
+                                             writeQueueMessage(resultQueue);
+                                         }
+                                     }
+                                 });
     }
 
     tcp::socket Socket_;

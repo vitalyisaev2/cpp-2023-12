@@ -1,9 +1,18 @@
 #include "parser.hpp"
+#include "status.hpp"
+#include <optional>
+#include <utility>
 
 namespace NDatabase {
 
-    TParser::TResult TParser::Handle(std::string&& line) const {
-        auto splits = SplitStringBySpace(std::move(line));
+    TParser::TResult TParser::Handle(const std::string& line) const {
+        auto splitResult = SplitStringBySpace(line);
+        if (!splitResult.second.Succeeded_) {
+            return TParser::TResult{.Status_ = std::move(splitResult.second), .Cmd_ = std::nullopt};
+        }
+
+        auto& splits = *splitResult.first;
+
         if (splits[0] == "INSERT") {
             return ParseInsert(splits);
         } else if (splits[0] == "SELECT") {
@@ -48,7 +57,7 @@ namespace NDatabase {
         };
     }
 
-    std::vector<std::string> TParser::SplitStringBySpace(std::string&& str) const {
+    std::pair<std::optional<std::vector<std::string>>, TStatus> TParser::SplitStringBySpace(const std::string& str) const {
         std::istringstream iss(str);
         std::string word;
         std::vector<std::string> results;
@@ -57,7 +66,14 @@ namespace NDatabase {
             results.push_back(word);
         }
 
-        return results;
+        if (results.size() == 0) {
+            std::stringstream ss;
+            ss << "Could not split string '" << str << "' into tokens";
+            auto status = TStatus::Error(ss.str());
+            return std::make_pair(std::nullopt, std::move(status));
+        }
+
+        return std::make_pair(std::move(results), TStatus::Success());
     }
 
 } //namespace NDatabase
