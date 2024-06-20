@@ -1,4 +1,5 @@
 #include <boost/asio.hpp>
+#include <cstddef>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
@@ -37,9 +38,9 @@ private:
                                     std::cout << "DoRead: ec=" << ec.message() << ", length=" << length << std::endl;
 
                                     if (!ec) {
-                                        std::cout << "received message: '" << Buffer_ << "'" << std::endl;
+                                        std::cout << "Received request: '" << Buffer_ << "'" << std::endl;
 
-                                        auto result = Parser_.Handle(Buffer_);
+                                        auto result = Parser_.Handle(std::string(Buffer_.data(), length));
 
                                         // Handle parser error
                                         if (!result.Status_.Succeeded_) {
@@ -56,9 +57,9 @@ private:
     void DoWriteStatus(NDatabase::TStatus&& status) {
         auto self(shared_from_this());
 
-        status.Dump(self->Buffer_);
+        auto n = status.Dump(self->Buffer_);
 
-        boost::asio::async_write(Socket_, boost::asio::buffer(self->Buffer_),
+        boost::asio::async_write(Socket_, boost::asio::buffer(self->Buffer_, n),
                                  [this, self](boost::system::error_code ec, std::size_t length) {
                                      std::cout << "DoWriteStatus: ec=" << ec.message() << ", length=" << length
                                                << std::endl;
@@ -70,14 +71,15 @@ private:
 
         // handle next item from queue
         bool finished = false;
+        std::size_t n;
 
         auto visitor = [&](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
 
             if constexpr (std::is_same_v<T, std::optional<NDatabase::TRowData>>) {
-                arg->Dump(self->Buffer_);
+                n = arg->Dump(self->Buffer_);
             } else if constexpr (std::is_same_v<T, NDatabase::TStatus>) {
-                arg.Dump(self->Buffer_);
+                n = arg.Dump(self->Buffer_);
                 finished = true;
             } else {
                 throw std::invalid_argument("unexpected message type");
@@ -86,7 +88,7 @@ private:
 
         std::visit(visitor, resultQueue->Pop());
 
-        boost::asio::async_write(Socket_, boost::asio::buffer(self->Buffer_),
+        boost::asio::async_write(Socket_, boost::asio::buffer(self->Buffer_, n),
                                  [this, self, finished, resultQueue](boost::system::error_code ec, std::size_t length) {
                                      std::cout << "DoWriteQueueMessage: ec=" << ec.message() << ", length=" << length
                                                << std::endl;
@@ -143,6 +145,8 @@ int main(int argc, char* argv[]) {
 
         // 4 threads would be enough for this task
         int thread_count = std::thread::hardware_concurrency() < 4 ? std::thread::hardware_concurrency() : 4;
+
+        std::cout << "Listening on localhost:" << argv[1] << std::endl;
 
         TServer s(io_context, std::atoi(argv[1]), NDatabase::TDatabase::Create());
 

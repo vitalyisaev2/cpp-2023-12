@@ -30,7 +30,10 @@ namespace NDatabase {
     TParser::TResult TParser::ParseInsert(std::vector<std::string>& splits) const {
         if (splits.size() != 4) {
             std::stringstream ss;
-            ss << "invalid number of terms for command INSERT: wanted 4, got " << splits.size();
+            ss << "invalid number of terms for command INSERT: wanted 4, got " << splits.size() << ": ";
+            for (const auto& s : splits) {
+                ss << "'" << s << "' ";
+            }
             return TParser::TResult{.Status_ = TStatus::Error(ss.str())};
         }
 
@@ -57,13 +60,24 @@ namespace NDatabase {
         };
     }
 
-    std::pair<std::optional<std::vector<std::string>>, TStatus> TParser::SplitStringBySpace(const std::string& str) const {
+    std::pair<std::optional<std::vector<std::string>>, TStatus>
+    TParser::SplitStringBySpace(const std::string& str) const {
+        if (!str.size()) {
+            return std::make_pair(std::nullopt, TStatus::Error("Empty request"));
+        }
+
+        if (str[str.size() - 1] != '\n') {
+            return std::make_pair(std::nullopt, TStatus::Error("Every request must be terminated with \\n symbol"));
+        };
+
         std::istringstream iss(str);
         std::string word;
         std::vector<std::string> results;
 
         while (iss >> word) {
-            results.push_back(word);
+            if (word.size()) {
+                results.push_back(word);
+            }
         }
 
         if (results.size() == 0) {
