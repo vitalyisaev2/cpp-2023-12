@@ -30,7 +30,7 @@ namespace NDatabase {
     TParser::TResult TParser::ParseInsert(std::vector<std::string>& splits) const {
         if (splits.size() != 4) {
             std::stringstream ss;
-            ss << "invalid number of terms for command INSERT: wanted 4, got " << splits.size() << ": ";
+            ss << "ERR: invalid number of terms for command INSERT: wanted 4, got " << splits.size() << ": ";
             for (const auto& s : splits) {
                 ss << "'" << s << "' ";
             }
@@ -50,7 +50,7 @@ namespace NDatabase {
     TParser::TResult TParser::ParseSelect(std::vector<std::string>& splits) const {
         if (splits.size() != 2) {
             std::stringstream ss;
-            ss << "invalid number of terms for command SELECT: wanted 2, got " << splits.size();
+            ss << "ERR: invalid number of terms for command SELECT: wanted 2, got " << splits.size();
             return TParser::TResult{.Status_ = TStatus::Error(ss.str())};
         }
 
@@ -82,7 +82,7 @@ namespace NDatabase {
 
         if (results.size() == 0) {
             std::stringstream ss;
-            ss << "Could not split string '" << str << "' into tokens";
+            ss << "ERR: cannot split string '" << str << "' into tokens";
             auto status = TStatus::Error(ss.str());
             return std::make_pair(std::nullopt, std::move(status));
         }
