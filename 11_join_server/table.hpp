@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <list>
-#include <unordered_map>
+#include <map>
 #include <memory>
 #include <variant>
 #include <vector>
@@ -104,7 +104,7 @@ namespace NDatabase {
 
     private:
         // This is the simpliest kind of index. It maps primary key into the row.
-        std::unordered_map<TRowId, TRow> Rows_;
+        std::map<TRowId, TRow> Rows_;
 
         // Mutex synchronizes access to the rows;
         std::shared_mutex Mutex_;
