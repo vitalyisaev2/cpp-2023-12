@@ -54,6 +54,8 @@ namespace NDatabase {
             throw std::invalid_argument(ss.str());
         }
 
+        TRowData MergeWith(const TRowData& other) const;
+
         bool operator==(const TRowData& other) const;
 
         std::size_t Dump(std::string& buffer) const;

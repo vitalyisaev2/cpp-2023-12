@@ -15,30 +15,27 @@ import (
 )
 
 type record struct {
-	id    int
-	value string
-}
-
-func (r *record) String() string {
-	return fmt.Sprintf("id=%d, value=%s", r.id, r.value)
-}
-
-func (r *record) equalsTo(other *record) bool {
-	return r.id == other.id && r.value == other.value
+	// id    int
+	// value string
+	values []any
 }
 
 func parseRecord(line string) (*record, error) {
 	split := strings.Split(line, ",")
-	if len(split) != 2 {
-		return nil, fmt.Errorf("invalid number of lines")
-	}
 
 	id, err := strconv.Atoi(split[0])
 	if err != nil {
 		return nil, fmt.Errorf("convert '%s' to int", split[1])
 	}
 
-	return &record{id: id, value: split[1]}, nil
+	values := make([]any, 0, len(split))
+	values = append(values, id)
+
+	for _, s := range split[1:] {
+		values = append(values, s)
+	}
+
+	return &record{values: values}, nil
 }
 
 func parseFinalResult(response string) (bool, error) {
@@ -71,7 +68,7 @@ func (c *client) makeConnection() (*net.TCPConn, error) {
 	return conn, nil
 }
 
-func (c *client) doInsert(tableName string, rec *record) error {
+func (c *client) doInsert(tableName string, values []any) error {
 	conn, err := c.makeConnection()
 	if err != nil {
 		return fmt.Errorf("make connection: %v", err)
@@ -79,7 +76,7 @@ func (c *client) doInsert(tableName string, rec *record) error {
 
 	defer conn.Close()
 
-	request := fmt.Sprintf("INSERT %s %d %s\n", tableName, rec.id, rec.value)
+	request := fmt.Sprintf("INSERT %s %d %s\n", tableName, values[0], values[1])
 
 	log.Println("Sending request", request)
 
@@ -174,43 +171,124 @@ func (c *client) doTruncate(tableName string) error {
 	_, err = parseFinalResult(string(response))
 	return err
 }
+func (c *client) doIntersect(tableName1, tableName2 string) ([]*record, error) {
+	conn, err := c.makeConnection()
+	if err != nil {
+		return nil, fmt.Errorf("make connection: %v", err)
+	}
+
+	defer conn.Close()
+
+	request := fmt.Sprintf("INTERSECT %s %s\n", tableName1, tableName2)
+
+	log.Println("Sending request", request)
+
+	n, err := conn.Write([]byte(request))
+	if err != nil {
+		return nil, fmt.Errorf("write request: %w", err)
+	}
+
+	log.Println("Request sent", n)
+
+	records := []*record{}
+
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if isFinalMessage, err := parseFinalResult(line); isFinalMessage {
+			return records, err
+		}
+
+		r, err := parseRecord(line)
+		if err != nil {
+			return nil, fmt.Errorf("parse record from line '%s'", line)
+		}
+
+		records = append(records, r)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("scanner err: %w", err)
+	}
+
+	return records, nil
+}
 
 func newClient(endpoint string) (*client, error) {
 	return &client{endpoint: endpoint}, nil
 }
 
-func TestMultilineTable(t *testing.T) {
+func TestTableBasicMethods(t *testing.T) {
 	cl, err := newClient("localhost:10000")
 	require.NoError(t, err)
 
 	// Insert two lines
 
-	require.NoError(t, cl.doInsert("A", &record{id: 0, value: "lean"}))
-	require.NoError(t, cl.doInsert("A", &record{id: 1, value: "understand"}))
+	require.NoError(t, cl.doInsert("T", []any{int(0), "lean"}))
+	require.NoError(t, cl.doInsert("T", []any{int(1), "understand"}))
 
 	// Select should return them back
 
-	recordsActual, err := cl.doSelect("A")
+	recordsActual, err := cl.doSelect("T")
 	require.NoError(t, err)
 	require.Len(t, recordsActual, 2)
 
 	recordsExpected := []*record{
-		{0, "lean"},
-		{1, "understand"},
+		{values: []any{int(0), "lean"}},
+		{values: []any{int(1), "understand"}},
 	}
 
 	for i := 0; i < len(recordsExpected); i++ {
-		require.True(
+		require.Equal(
 			t,
-			recordsExpected[i].equalsTo(recordsActual[i]),
+			recordsExpected[i].values, recordsActual[i].values,
 			fmt.Errorf("expected: %v, actual: %v", recordsExpected[i], recordsActual[i]))
 	}
 
 	// Now truncate the table
-	require.NoError(t, cl.doTruncate("A"))
+	require.NoError(t, cl.doTruncate("T"))
 
 	// Table still exists, but empty
-	recordsActual, err = cl.doSelect("A")
+	recordsActual, err = cl.doSelect("T")
 	require.NoError(t, err)
 	require.Len(t, recordsActual, 0)
+}
+
+func TestTablesIntersection(t *testing.T) {
+	cl, err := newClient("localhost:10000")
+	require.NoError(t, err)
+
+	require.NoError(t, cl.doInsert("A", []any{int(0), "lean"}))
+	require.NoError(t, cl.doInsert("A", []any{int(1), "sweater"}))
+	require.NoError(t, cl.doInsert("A", []any{int(2), "frank"}))
+	require.NoError(t, cl.doInsert("A", []any{int(3), "violation"}))
+	require.NoError(t, cl.doInsert("A", []any{int(4), "quality"}))
+	require.NoError(t, cl.doInsert("A", []any{int(5), "precision"}))
+
+	require.NoError(t, cl.doInsert("B", []any{int(3), "proposal"}))
+	require.NoError(t, cl.doInsert("B", []any{int(4), "example"}))
+	require.NoError(t, cl.doInsert("B", []any{int(5), "lake"}))
+	require.NoError(t, cl.doInsert("B", []any{int(6), "flour"}))
+	require.NoError(t, cl.doInsert("B", []any{int(7), "wonder"}))
+	require.NoError(t, cl.doInsert("B", []any{int(8), "selection"}))
+
+	// Select should return them back
+
+	recordsActual, err := cl.doIntersect("A", "B")
+	require.NoError(t, err)
+	require.Len(t, recordsActual, 3)
+
+	recordsExpected := []*record{
+		{values: []any{int(3), "violation", "proposal"}},
+		{values: []any{int(4), "quality", "example"}},
+		{values: []any{int(5), "precision", "lake"}},
+	}
+
+	for i := 0; i < len(recordsExpected); i++ {
+		require.Equal(
+			t,
+			recordsExpected[i].values, recordsActual[i].values,
+			fmt.Errorf("expected: %v, actual: %v", recordsExpected[i], recordsActual[i]))
+	}
 }

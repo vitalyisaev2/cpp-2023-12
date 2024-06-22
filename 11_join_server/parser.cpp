@@ -20,7 +20,8 @@ namespace NDatabase {
             return ParseSelect(splits);
         } else if (splits[0] == "TRUNCATE") {
             return ParseTruncate(splits);
-            // } else if (splits[0] == "INTERSECT") {
+        } else if (splits[0] == "INTERSECT") {
+            return ParseIntersect(splits);
             // } else if (splits[0] == "DIFFERENCE") {
         } else {
             std::stringstream ss;
@@ -73,6 +74,27 @@ namespace NDatabase {
             .Status_ = TStatus::Success(),
             .Cmd_ = TCmdTruncate{.TableName_ = std::move(splits[1])},
         };
+    }
+
+    TParser::TResult TParser::ParseIntersect(std::vector<std::string>& splits) const {
+        // If no tables specified, use defaults to satisfy homework requirements
+        if (splits.size() == 1) {
+            return TParser::TResult{
+                .Status_ = TStatus::Success(),
+                .Cmd_ = TCmdIntersect{.TableName1_ = "A", .TableName2_ = "B"},
+            };
+        }
+
+        if (splits.size() == 3) {
+            return TParser::TResult{
+                .Status_ = TStatus::Success(),
+                .Cmd_ = TCmdIntersect{.TableName1_ = std::move(splits[1]), .TableName2_ = std::move(splits[2])},
+            };
+        }
+
+        std::stringstream ss;
+        ss << "ERR: invalid number of terms for command INTERSECT: wanted 3, got " << splits.size();
+        return TParser::TResult{.Status_ = TStatus::Error(ss.str())};
     }
 
     std::pair<std::optional<std::vector<std::string>>, TStatus>

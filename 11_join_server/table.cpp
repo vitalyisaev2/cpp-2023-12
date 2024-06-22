@@ -9,6 +9,21 @@
 #include "table.hpp"
 
 namespace NDatabase {
+    TRowData TRowData::MergeWith(const TRowData& other) const {
+        TRowData out(Values_.size() + other.Values_.size() - 1);
+
+        for (std::size_t i = 0; i < Values_.size(); i++) {
+            out.Append(Values_[i]);
+        }
+
+        // omit first item as it contains row id
+        for (std::size_t i = 1; i < other.Values_.size(); i++) {
+            out.Append(other.Values_[i]);
+        }
+
+        return out;
+    }
+
     bool TRowData::operator==(const TRowData& other) const {
         if (Values_.size() != other.Values_.size()) {
             return false;

@@ -19,13 +19,13 @@ namespace NDatabase {
     };
 
     struct TCmdIntersect {
-        std::string TableLhs_;
-        std::string TableRhs_;
+        std::string TableName1_;
+        std::string TableName2_;
     };
 
     struct TCmdDifference {
-        std::string TableLhs_;
-        std::string TableRhs_;
+        std::string TableName1_;
+        std::string TableName2_;
     };
 
     using TCmd = std::variant<TCmdInsert, TCmdSelect, TCmdTruncate, TCmdIntersect, TCmdDifference>;

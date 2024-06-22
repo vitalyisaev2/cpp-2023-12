@@ -36,7 +36,7 @@ namespace NDatabase {
         TResultQueue::TPtr Insert(const std::string& tableName, TRowData&& rowData);
         TResultQueue::TPtr Select(const std::string& tableName);
         TResultQueue::TPtr Truncate(const std::string& tableName);
-        TResultQueue::TPtr Intersection(const std::string& tableName1, const std::string& tableName2);
+        TResultQueue::TPtr Intersection(const std::string& tablename1, const std::string& tablename2);
         TResultQueue::TPtr SymmetricDifference(const std::string& tableName1, const std::string& tableName2);
 
         static TResultQueue::TPtr MakeResultQueue() {

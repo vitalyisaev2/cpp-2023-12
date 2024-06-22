@@ -18,6 +18,7 @@ namespace NDatabase {
         TResult ParseInsert(std::vector<std::string>& splits) const;
         TResult ParseSelect(std::vector<std::string>& splits) const;
         TResult ParseTruncate(std::vector<std::string>& splits) const;
+        TResult ParseIntersect(std::vector<std::string>& splits) const;
         std::pair<std::optional<std::vector<std::string>>, TStatus> SplitStringBySpace(const std::string& str) const;
     };
 } //namespace NDatabase
