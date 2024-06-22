@@ -145,6 +145,36 @@ func (c *client) doSelect(tableName string) ([]*record, error) {
 	return records, nil
 }
 
+func (c *client) doTruncate(tableName string) error {
+	conn, err := c.makeConnection()
+	if err != nil {
+		return fmt.Errorf("make connection: %v", err)
+	}
+
+	defer conn.Close()
+
+	request := fmt.Sprintf("TRUNCATE %s\n", tableName)
+
+	log.Println("Sending request", request)
+
+	n, err := conn.Write([]byte(request))
+	if err != nil {
+		return fmt.Errorf("write request: %w", err)
+	}
+
+	log.Println("Request sent", n)
+
+	response, err := io.ReadAll(conn)
+	if err != nil {
+		return fmt.Errorf("conn read: %w", err)
+	}
+
+	log.Println("Received response", string(response))
+
+	_, err = parseFinalResult(string(response))
+	return err
+}
+
 func newClient(endpoint string) (*client, error) {
 	return &client{endpoint: endpoint}, nil
 }
@@ -153,11 +183,16 @@ func TestMultilineTable(t *testing.T) {
 	cl, err := newClient("localhost:10000")
 	require.NoError(t, err)
 
+	// Insert two lines
+
 	require.NoError(t, cl.doInsert("A", &record{id: 0, value: "lean"}))
 	require.NoError(t, cl.doInsert("A", &record{id: 1, value: "understand"}))
 
+	// Select should return them back
+
 	recordsActual, err := cl.doSelect("A")
 	require.NoError(t, err)
+	require.Len(t, recordsActual, 2)
 
 	recordsExpected := []*record{
 		{0, "lean"},
@@ -170,4 +205,12 @@ func TestMultilineTable(t *testing.T) {
 			recordsExpected[i].equalsTo(recordsActual[i]),
 			fmt.Errorf("expected: %v, actual: %v", recordsExpected[i], recordsActual[i]))
 	}
+
+	// Now truncate the table
+	require.NoError(t, cl.doTruncate("A"))
+
+	// Table still exists, but empty
+	recordsActual, err = cl.doSelect("A")
+	require.NoError(t, err)
+	require.Len(t, recordsActual, 0)
 }

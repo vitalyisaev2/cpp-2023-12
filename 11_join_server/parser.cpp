@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include "commands.hpp"
 #include "status.hpp"
 #include <optional>
 #include <utility>
@@ -17,12 +18,13 @@ namespace NDatabase {
             return ParseInsert(splits);
         } else if (splits[0] == "SELECT") {
             return ParseSelect(splits);
-            // } else if (splits[0] == "TRUNCATE") {
+        } else if (splits[0] == "TRUNCATE") {
+            return ParseTruncate(splits);
             // } else if (splits[0] == "INTERSECT") {
             // } else if (splits[0] == "DIFFERENCE") {
         } else {
             std::stringstream ss;
-            ss << "Unexpected command: " << splits[0];
+            ss << "ERR: Unexpected command: " << splits[0];
             return TResult{.Status_ = TStatus::Error(ss.str())};
         };
     }
@@ -57,6 +59,19 @@ namespace NDatabase {
         return TParser::TResult{
             .Status_ = TStatus::Success(),
             .Cmd_ = TCmdSelect{.TableName_ = std::move(splits[1])},
+        };
+    }
+
+    TParser::TResult TParser::ParseTruncate(std::vector<std::string>& splits) const {
+        if (splits.size() != 2) {
+            std::stringstream ss;
+            ss << "ERR: invalid number of terms for command TRUNCATE: wanted 2, got " << splits.size();
+            return TParser::TResult{.Status_ = TStatus::Error(ss.str())};
+        }
+
+        return TParser::TResult{
+            .Status_ = TStatus::Success(),
+            .Cmd_ = TCmdTruncate{.TableName_ = std::move(splits[1])},
         };
     }
 

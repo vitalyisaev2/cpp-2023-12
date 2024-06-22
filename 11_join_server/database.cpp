@@ -10,16 +10,27 @@
 
 namespace NDatabase {
     TDatabase::TResultQueue::TPtr TDatabase::HandleCommand(TCmd&& command) {
-        // Handle various commands
-        if (std::holds_alternative<TCmdInsert>(command)) {
-            auto cast = std::get<TCmdInsert>(command);
-            return Insert(cast.TableName_, std::move(cast.RowData_));
-        } else if (std::holds_alternative<TCmdSelect>(command)) {
-            auto cast = std::get<TCmdSelect>(command);
-            return Select(cast.TableName_);
-        } else {
-            throw std::invalid_argument("unknown command");
-        }
+        auto visitor = [&](auto& arg) -> TDatabase::TResultQueue::TPtr {
+            using T = std::decay_t<decltype(arg)>;
+
+            if constexpr (std::is_same_v<T, TCmdInsert>) {
+                return Insert(arg.TableName_, std::move(arg.RowData_));
+            } else if constexpr (std::is_same_v<T, TCmdSelect>) {
+                return Select(arg.TableName_);
+            } else if constexpr (std::is_same_v<T, TCmdTruncate>) {
+                return Truncate(arg.TableName_);
+            } else if constexpr (std::is_same_v<T, TCmdDifference>) {
+                throw std::invalid_argument("unknown type");
+                // return Select(arg.TableName_);
+            } else if constexpr (std::is_same_v<T, TCmdIntersect>) {
+                throw std::invalid_argument("unknown type");
+                // return Select(arg.TableName_);
+            } else {
+                throw std::invalid_argument("unknown type");
+            }
+        };
+
+        return std::visit(visitor, command);
     }
 
     TDatabase::TResultQueue::TPtr TDatabase::Insert(const std::string& tableName, TRowData&& rowData) {
