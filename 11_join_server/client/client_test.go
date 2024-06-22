@@ -15,8 +15,6 @@ import (
 )
 
 type record struct {
-	// id    int
-	// value string
 	values []any
 }
 
@@ -171,7 +169,16 @@ func (c *client) doTruncate(tableName string) error {
 	_, err = parseFinalResult(string(response))
 	return err
 }
+
 func (c *client) doIntersect(tableName1, tableName2 string) ([]*record, error) {
+	return c.doBinaryCrossTableCommand("INTERSECT", tableName1, tableName2)
+}
+
+func (c *client) doDifference(tableName1, tableName2 string) ([]*record, error) {
+	return c.doBinaryCrossTableCommand("DIFFERENCE", tableName1, tableName2)
+}
+
+func (c *client) doBinaryCrossTableCommand(cmd, tableName1, tableName2 string) ([]*record, error) {
 	conn, err := c.makeConnection()
 	if err != nil {
 		return nil, fmt.Errorf("make connection: %v", err)
@@ -179,7 +186,7 @@ func (c *client) doIntersect(tableName1, tableName2 string) ([]*record, error) {
 
 	defer conn.Close()
 
-	request := fmt.Sprintf("INTERSECT %s %s\n", tableName1, tableName2)
+	request := fmt.Sprintf("%s %s %s\n", cmd, tableName1, tableName2)
 
 	log.Println("Sending request", request)
 
@@ -195,6 +202,7 @@ func (c *client) doIntersect(tableName1, tableName2 string) ([]*record, error) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		line := scanner.Text()
+		log.Println("Request received", line)
 
 		if isFinalMessage, err := parseFinalResult(line); isFinalMessage {
 			return records, err
@@ -283,6 +291,47 @@ func TestTablesIntersection(t *testing.T) {
 		{values: []any{int(3), "violation", "proposal"}},
 		{values: []any{int(4), "quality", "example"}},
 		{values: []any{int(5), "precision", "lake"}},
+	}
+
+	for i := 0; i < len(recordsExpected); i++ {
+		require.Equal(
+			t,
+			recordsExpected[i].values, recordsActual[i].values,
+			fmt.Errorf("expected: %v, actual: %v", recordsExpected[i], recordsActual[i]))
+	}
+}
+
+func TestTablesDifference(t *testing.T) {
+	cl, err := newClient("localhost:10000")
+	require.NoError(t, err)
+
+	require.NoError(t, cl.doInsert("C", []any{int(0), "lean"}))
+	require.NoError(t, cl.doInsert("C", []any{int(1), "sweater"}))
+	require.NoError(t, cl.doInsert("C", []any{int(2), "frank"}))
+	require.NoError(t, cl.doInsert("C", []any{int(3), "violation"}))
+	require.NoError(t, cl.doInsert("C", []any{int(4), "quality"}))
+	require.NoError(t, cl.doInsert("C", []any{int(5), "precision"}))
+
+	require.NoError(t, cl.doInsert("D", []any{int(3), "proposal"}))
+	require.NoError(t, cl.doInsert("D", []any{int(4), "example"}))
+	require.NoError(t, cl.doInsert("D", []any{int(5), "lake"}))
+	require.NoError(t, cl.doInsert("D", []any{int(6), "flour"}))
+	require.NoError(t, cl.doInsert("D", []any{int(7), "wonder"}))
+	require.NoError(t, cl.doInsert("D", []any{int(8), "selection"}))
+
+	// Select should return them back
+
+	recordsActual, err := cl.doDifference("C", "D")
+	require.NoError(t, err)
+	require.Len(t, recordsActual, 6)
+
+	recordsExpected := []*record{
+		{values: []any{int(0), "lean", ""}},
+		{values: []any{int(1), "sweater", ""}},
+		{values: []any{int(2), "frank", ""}},
+		{values: []any{int(6), "", "flour"}},
+		{values: []any{int(7), "", "wonder"}},
+		{values: []any{int(8), "", "selection"}},
 	}
 
 	for i := 0; i < len(recordsExpected); i++ {

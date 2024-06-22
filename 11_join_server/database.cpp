@@ -20,8 +20,7 @@ namespace NDatabase {
             } else if constexpr (std::is_same_v<T, TCmdTruncate>) {
                 return Truncate(arg.TableName_);
             } else if constexpr (std::is_same_v<T, TCmdDifference>) {
-                throw std::invalid_argument("unknown type");
-                // return Select(arg.TableName_);
+                return Difference(arg.TableName1_, arg.TableName2_);
             } else if constexpr (std::is_same_v<T, TCmdIntersect>) {
                 return Intersection(arg.TableName1_, arg.TableName2_);
             } else {
@@ -147,11 +146,52 @@ namespace NDatabase {
             auto txId = ++self->TxCounter_;
             auto& table2 = tableIt2->second;
 
+            // collect row ids that occur in both tables
             tableIt1->second->Iterate(txId, [&queue, txId, &table2](TRowId rowId, std::optional<TRowData> rowData1) {
                 if (rowData1) {
                     auto rowData2 = table2->GetRow(txId, rowId);
                     if (rowData2) {
                         queue->Push(rowData1->MergeWith(*rowData2));
+                    }
+                }
+            });
+
+            queue->Push(TStatus::Success());
+            return;
+        });
+
+        return queue;
+    }
+
+    TDatabase::TResultQueue::TPtr TDatabase::Difference(const std::string& tableName1, const std::string& tableName2) {
+        auto queue = MakeResultQueue();
+
+        ThreadPool_->Enqueue([self = shared_from_this(), tableName1 = tableName1, tableName2 = tableName2,
+                              queue = queue](std::size_t) -> void {
+            std::shared_lock lock{self->Mutex_};
+
+            // obtain tables
+            mustFindTable(tableIt1, tableName1);
+            mustFindTable(tableIt2, tableName2);
+
+            auto txId = ++self->TxCounter_;
+            auto& table1 = tableIt1->second;
+            auto& table2 = tableIt2->second;
+
+            table1->Iterate(txId, [&queue, txId, &table2](TRowId rowId, std::optional<TRowData> rowData1) {
+                if (rowData1) {
+                    auto rowData2 = table2->GetRow(txId, rowId);
+                    if (!rowData2) {
+                        queue->Push(rowData1->MergeWith(TRowData::Empty(rowId, 2)));
+                    }
+                }
+            });
+
+            table2->Iterate(txId, [&queue, txId, &table1](TRowId rowId, std::optional<TRowData> rowData2) {
+                if (rowData2) {
+                    auto rowData1 = table1->GetRow(txId, rowId);
+                    if (!rowData1) {
+                        queue->Push(TRowData::Empty(rowId, 2).MergeWith(*rowData2));
                     }
                 }
             });

@@ -16,8 +16,22 @@
 namespace NDatabase {
     using TTxId = std::size_t;
 
-    // Currently our database can only keep ints and strings.
-    using TValue = std::variant<int, std::string>;
+    // TNull represents a row cell with no value
+    struct TNull {
+        inline bool operator==([[maybe_unused]] const TNull& other) const {
+            return true;
+        }
+
+        inline bool operator!=([[maybe_unused]] const TNull& other) const {
+            return false;
+        }
+    };
+
+    // Currently our database can only keep ints, strings and empty values
+    using TValue = std::variant<int, std::string, TNull>;
+
+    // Type used to identify rows
+    using TRowId = std::size_t;
 
     class TRowData {
     public:
@@ -30,6 +44,8 @@ namespace NDatabase {
         explicit TRowData(std::size_t capacity) {
             Values_.reserve(capacity);
         }
+
+        static TRowData Empty(TRowId rowId, std::size_t capacity);
 
         template <typename T>
         void Append(T value) {
@@ -92,7 +108,6 @@ namespace NDatabase {
         std::shared_mutex Mutex_;
     };
 
-    using TRowId = std::size_t;
     using TRowHandler = std::function<void(TRowId, std::optional<TRowData>)>;
 
     class TTable {

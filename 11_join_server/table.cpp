@@ -9,6 +9,17 @@
 #include "table.hpp"
 
 namespace NDatabase {
+    TRowData TRowData::Empty(TRowId rowId, std::size_t capacity) {
+        TRowData out(capacity);
+        out.Append(int(rowId));
+
+        for (std::size_t i = 1; i < capacity; i++) {
+            out.Append(TNull{});
+        }
+
+        return out;
+    };
+
     TRowData TRowData::MergeWith(const TRowData& other) const {
         TRowData out(Values_.size() + other.Values_.size() - 1);
 
@@ -52,6 +63,8 @@ namespace NDatabase {
                 added = std::to_string(arg);
             } else if constexpr (std::is_same_v<T, std::string>) {
                 added = arg;
+            } else if constexpr (std::is_same_v<T, TNull>) {
+                added = "";
             } else {
                 throw std::invalid_argument("unknown type");
             }
