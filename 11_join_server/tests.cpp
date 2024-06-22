@@ -147,7 +147,7 @@ TEST(TDatabase, Test) {
 TEST(TParser, InsertPositive) {
     TParser parser;
 
-    auto result = parser.Handle("INSERT A 0 lean");
+    auto result = parser.Handle("INSERT A 0 lean\n");
     ASSERT_TRUE(result.Status_.Succeeded_);
     ASSERT_TRUE(result.Cmd_);
     ASSERT_TRUE(std::holds_alternative<TCmdInsert>(*result.Cmd_));
@@ -163,7 +163,7 @@ TEST(TParser, InsertPositive) {
 TEST(TParser, InsertNegative) {
     TParser parser;
 
-    auto result = parser.Handle("INSERT A 0");
+    auto result = parser.Handle("INSERT A 0\n");
     ASSERT_FALSE(result.Status_.Succeeded_);
 
     std::cout << *result.Status_.Message_ << std::endl;
